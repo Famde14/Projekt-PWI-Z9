@@ -13,5 +13,5 @@ struct ship{
 	bool isUpdating;	//true, gdy obiekt jest aktualnie przeciągany
 
 	void (*updateHitbox)(struct ship*);	//ustala wymiary hitbox'u
-	void (*updateShip)(struct ship*);	//aktualizuje pozycję i rotację obiektu
+	void (*updateShip)(bool* isDragging, struct ship*);	//aktualizuje pozycję i rotację obiektu; isDragging ma spwawdzać, czy jakiś statek nie jest już przeciągany
 };

@@ -24,21 +24,24 @@ void rotate(int key, Image* sprite, Texture2D* texture){	//ustala rotację obiek
 	*texture = LoadTextureFromImage(*sprite);	//załaduj nową teksturę
 }
 
-void UpdateShip(struct ship* s){	//wywołuje mause_drag i rotate
+void UpdateShip(bool* isDragging, struct ship* s){	//wywołuje mause_drag i rotate
+
+	if(*isDragging && !s->isUpdating) return; //jeśli jakiś statek jest już przeciągany, nie przeciągaj drugiego
 
 	//przy kliknięciu prawego przycisku myszy na hitbox lub gdy przy przeciąganiu przytrzymywany jest prawy przycisk myszy
-	if((IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(GetMousePosition(), s->hitbox)) || (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && s->isUpdating)) s->isUpdating = true;
-	else s->isUpdating = false;
+	if((IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(GetMousePosition(), s->hitbox)) || (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && s->isUpdating)){
+
+		s->isUpdating = true;
+		*isDragging = true;
+	}
+	else {
+		s->isUpdating = false;
+	}
 
 	if(s->isUpdating){
 		mouse_drag(MOUSE_BUTTON_LEFT, s, SKYBLUE);
 
-        if(IsKeyPressed('E')){
-            rotate('E', &s->sprite, &s->texture);
-        }
-
-        if(IsKeyPressed('Q')){
-            rotate('Q', &s->sprite, &s->texture);
-        }
+        if(IsKeyPressed('E')) rotate('E', &s->sprite, &s->texture);
+        if(IsKeyPressed('Q')) rotate('Q', &s->sprite, &s->texture);
 	}
 }
