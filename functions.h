@@ -10,10 +10,10 @@ void UpdateShip(bool* isDragging, struct ship* s);	//wywołuje mouse_drag i rota
 /*plansza i interakcja z plansza*/ 
 board* initboard();
 void delboard(board* boardtab);
-void placeStatek(board* board,ship* ship,pair begin,int direction);
-void shoot(board* player,pair pair);//wymaga poprawnie zainicjowanego statku zeby dzialalo, a wiec potrzeba inicjatora
-void drawboard(board* board,int screenwidth,int screenheight)//funkcja rysuje tablice danego gracza. Na razie drukuje tylko tile'a (funkcja potencjalnie do wymiany)
+void placeStatek(board* board,ship* curr_ship,pair begin,int direction);
+void shoot(board* player,pair pairA);//wymaga poprawnie zainicjowanego statku zeby dzialalo, a wiec potrzeba inicjatora
+void printboard(board* boardtab);//funkcja rysuje tablice danego gracza. Na razie drukuje tylko tile'a (funkcja potencjalnie do wymiany)
 /*do dodania*/
-//init_ship();
-//del_ship();
+ship* initship(int type);
+void delship(ship* statek);
 #endif

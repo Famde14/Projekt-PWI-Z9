@@ -6,11 +6,11 @@ typedef struct pair{
 	float x;
 	float y;
 }pair;
-typedef struct boardplace
+typedef struct shiptile
 {
 	pair cords;
 	bool got_shot;
-}boardplace;
+}shiptile;
 
 typedef struct ship{
 	struct pair pos;	//pozycja lewego górnego rogu obiektu
@@ -18,7 +18,7 @@ typedef struct ship{
 	Texture2D texture;
 	Rectangle hitbox;
 	bool isUpdating;	//true, gdy obiekt jest aktualnie przeciągany
-	boardplace* boardplace; 
+	shiptile* boardplace; 
 	char type; // 1 - 1maszt 2 - 2-maszt 3 - 3maszt 4- 4maszt 
 	void (*updateHitbox)(struct ship*);	//ustala wymiary hitbox'u
 	void (*updateShip)(bool* isDragging, struct ship*);	//aktualizuje pozycję i rotację obiektu; isDragging ma spwawdzać, czy jakiś statek nie jest już przeciągany
@@ -27,4 +27,5 @@ typedef struct board	// temp tablica (nie wiem jeszcz jak dokladnie zamierzamy s
 {
 	ship* BOARD[10][10];
 }board;
+
 #endif
