@@ -26,6 +26,7 @@ typedef struct ship{
 	Texture2D texture;
 	Rectangle hitbox;
 	bool isUpdating;	//true, gdy obiekt jest aktualnie przeciągany
+	int length; //długość statku
 	shiptile* boardplace; 
 	char type; // 1 - 1maszt 2 - 2-maszt 3 - 3maszt 4- 4maszt 
 	void (*updateHitbox)(struct ship*);	//ustala wymiary hitbox'u
