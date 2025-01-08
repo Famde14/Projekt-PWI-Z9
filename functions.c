@@ -22,7 +22,7 @@ void mouse_drag(int key, struct ship* s, Color color){	//ustala położenie obie
 void rotate(int key, Image* sprite, Texture2D* texture){	//ustala rotację obiektu
 	UnloadTexture(*texture);					//usuwa poprednią teksturę
 
-	if(key=='E') ImageRotateCCW(sprite);		//obrót zgodnie z ruchem wskazówek zegara
+	if(key=='E') ImageRotateCW(sprite);		//obrót zgodnie z ruchem wskazówek zegara
 	else ImageRotateCCW(sprite);				//obrót przeciwnie z ruchem wskazówek zegara
 
 	*texture = LoadTextureFromImage(*sprite);	//załaduj nową teksturę
@@ -46,10 +46,22 @@ void UpdateShip(bool* isDragging, struct ship* s)
 	if(s->isUpdating)
 	{
 		mouse_drag(MOUSE_BUTTON_LEFT, s, SKYBLUE);
+		s->updateHitbox(s);									//aktualizacja hitboxu
 
         if(IsKeyPressed('E')) rotate('E', &s->sprite, &s->texture);
         if(IsKeyPressed('Q')) rotate('Q', &s->sprite, &s->texture);
 	}
+	if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+	{
+        s->isUpdating = false;
+        *isDragging = false;
+    }
+}
+void SnapToGrid(struct ship* s, int gridStartX, int gridStartY, int cellSize) 		//przypisuje statek do kratki
+{
+    s->pos.x = gridStartX + ((int)((s->pos.x - gridStartX) / cellSize)) * cellSize;
+    s->pos.y = gridStartY + ((int)((s->pos.y - gridStartY) / cellSize)) * cellSize;
+    s->updateHitbox(s);
 }
 	ship* initship(int type)
 	{													//trzeba bedzie zaktualizowac funkcje tak aby aktualizowala polozenie,hitbox i sprite w interfejsie graficznym. 
