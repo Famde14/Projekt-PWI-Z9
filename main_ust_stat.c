@@ -13,6 +13,9 @@ int main(void)
     InitWindow(screenWidth, screenHeight, "The Statki Game");
     SetTargetFPS(60);
 
+    int game_phase = 0;
+
+
     int gridSize = 10; // Rozmiar planszy
     int cellSize = 50; // Rozmiar pojedynczej kratki (w pikselach)
 
@@ -154,29 +157,40 @@ int main(void)
 
         ClearBackground(RAYWHITE);
 
-        DrawLine(screenWidth / 2, 0, screenWidth / 2, screenHeight, BLACK); // Pionowa linia
+        if (game_phase == 0) {
+            // Rysowanie ekranu startowego
+            DrawText("Welcome to Statki The Game!", screenWidth / 2 - MeasureText("Welcome to Statki The Game!", 40) / 2, screenHeight / 2 - 50, 40, DARKBLUE);
+            DrawText("Press SPACE, to start", screenWidth / 2 - MeasureText("Press SPACE to start", 20) / 2, screenHeight / 2 + 20, 20, DARKGRAY);
 
-        DrawText("Press ESC to exit", 10, 10, 20, DARKGRAY);
+            // Przejście do gry po wciśnięciu spacji
+            if (IsKeyPressed(KEY_SPACE)) {
+                game_phase = 1;
+            }
+        } else if (game_phase == 1) {
 
-        for (int i = 0; i < gridSize; i++) {
-            char label[3];
-            snprintf(label, sizeof(label), "%c", 'A' + i);
-            DrawText(label, gridStartX + i * cellSize + cellSize / 2 - 5, gridStartY - 30, 20, BLACK);
-            snprintf(label, sizeof(label), "%d", i + 1);
-            DrawText(label, gridStartX - 30, gridStartY + i * cellSize + cellSize / 2 - 10, 20, BLACK);
-        }
+            DrawLine(screenWidth / 2, 0, screenWidth / 2, screenHeight, BLACK); // Pionowa linia
 
-        for (int i = 0; i < gridSize; i++) {
-            for (int j = 0; j < gridSize; j++) {
-                DrawRectangleLines(gridStartX + j * cellSize, gridStartY + i * cellSize, cellSize, cellSize, BLACK);
+            DrawText("Press ESC to exit", 10, 10, 20, DARKGRAY);
+
+            for (int i = 0; i < gridSize; i++) {
+                char label[3];
+                snprintf(label, sizeof(label), "%c", 'A' + i);
+                DrawText(label, gridStartX + i * cellSize + cellSize / 2 - 5, gridStartY - 30, 20, BLACK);
+                snprintf(label, sizeof(label), "%d", i + 1);
+                DrawText(label, gridStartX - 30, gridStartY + i * cellSize + cellSize / 2 - 10, 20, BLACK);
+            }
+
+            for (int i = 0; i < gridSize; i++) {
+                for (int j = 0; j < gridSize; j++) {
+                    DrawRectangleLines(gridStartX + j * cellSize, gridStartY + i * cellSize, cellSize, cellSize, BLACK);
+                }
+            }
+
+            //draw ships
+            for (int i = 0; i < MAX_SHIPS; i++) {
+                DrawTexture(ships[i].texture, (int)ships[i].pos.x, (int)ships[i].pos.y, WHITE);
             }
         }
-
-        //draw ships
-        for (int i = 0; i < MAX_SHIPS; i++) {
-            DrawTexture(ships[i].texture, (int)ships[i].pos.x, (int)ships[i].pos.y, WHITE);
-        }
-
         EndDrawing();
     }
 
