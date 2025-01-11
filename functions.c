@@ -4,6 +4,9 @@
 #include <stdlib.h>
 #include <stddef.h>//dla definicji nulla 
 #include <stdio.h>//do wywalenia ale to jak bedzie interfejs
+
+#define MAX_SHIPS 10
+
 void UpdateHitbox(struct ship* s) {		//ustala pozycję i wymiary hitbox'u
     s->hitbox.x = s->pos.x;
     s->hitbox.y = s->pos.y;
@@ -48,8 +51,14 @@ void UpdateShip(bool* isDragging, struct ship* s)
 		mouse_drag(MOUSE_BUTTON_LEFT, s, SKYBLUE);
 		s->updateHitbox(s);									//aktualizacja hitboxu
 
-        if(IsKeyPressed('E')) rotate('E', &s->sprite, &s->texture);
-        if(IsKeyPressed('Q')) rotate('Q', &s->sprite, &s->texture);
+        if(IsKeyPressed('E')) {
+			rotate('E', &s->sprite, &s->texture);
+			s->kierunek=(s->kierunek+1)%4;
+		}
+        if(IsKeyPressed('Q')) {
+			rotate('Q', &s->sprite, &s->texture);
+			s->kierunek=!s->kierunek?3:s->kierunek-1;
+		}
 	}
 	if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
 	{
@@ -57,12 +66,259 @@ void UpdateShip(bool* isDragging, struct ship* s)
         *isDragging = false;
     }
 }
-void SnapToGrid(struct ship* s, int gridStartX, int gridStartY, int cellSize) 		//przypisuje statek do kratki
-{
+void SnapToGrid(struct ship* s, int gridStartX, int gridStartY, int cellSize) {
     s->pos.x = gridStartX + ((int)((s->pos.x - gridStartX) / cellSize)) * cellSize;
     s->pos.y = gridStartY + ((int)((s->pos.y - gridStartY) / cellSize)) * cellSize;
     s->updateHitbox(s);
+
+    if (s->boardplace != NULL) {
+        free(s->boardplace);
+    }
+    s->boardplace = (shiptile*)malloc(s->length * sizeof(shiptile));
+
+    // Update boardplace array with grid coordinates
+    for (int i = 0; i < s->length; i++) {
+        s->boardplace[i].cords.x = (s->pos.x - gridStartX) / cellSize + i;
+        s->boardplace[i].cords.y = (s->pos.y - gridStartY) / cellSize;
+        s->boardplace[i].got_shot = false;
+    }
+
+    //do pomocniczego wypisywania
+    PrintShipPositions(s);
 }
+
+void PrintShipPositions(struct ship* s) {
+    printf("Ship positions (grid coordinates):\n");
+    for (int i = 0; i < s->length; i++) {
+        printf("Tile %d: (%.0f, %.0f)\n", i, s->boardplace[i].cords.x, s->boardplace[i].cords.y);
+    }
+}
+
+GameData GameSet() {
+    int screenWidth = 1200;
+    int screenHeight = 720;
+
+    InitWindow(screenWidth, screenHeight, "The Statki Game");
+    SetTargetFPS(60);
+
+    int gridSize = 10; // Rozmiar planszy
+    int cellSize = 50; // Rozmiar pojedynczej kratki (w pikselach)
+
+    //załadowanie tekstur statków
+    const char* ship1Files[] = {"textures/ship1.png", "textures/ship1.png", "textures/ship1.png", "textures/ship1.png"};
+    const char* ship2Files[] = {"textures/ship2.png", "textures/ship2.png", "textures/ship2.png"};
+    const char* ship3Files[] = {"textures/ship3.png", "textures/ship3.png"};
+    const char* ship4Files[] = {"textures/ship4.png"};
+
+    Image ship1Images[4];
+    Texture2D ship1Textures[4];
+    for (int i = 0; i < 4; i++) {
+        ship1Images[i] = LoadImage(ship1Files[i]);
+        ImageResize(&ship1Images[i], cellSize, cellSize); //zmniejsz do 1x1 kafelka
+        ship1Textures[i] = LoadTextureFromImage(ship1Images[i]);
+    }
+
+    Image ship2Images[3];
+    Texture2D ship2Textures[3];
+    for (int i = 0; i < 3; i++) {
+        ship2Images[i] = LoadImage(ship2Files[i]);
+        ImageResize(&ship2Images[i], cellSize * 2, cellSize); //zmniejsz do 2x1 kafelka
+        ship2Textures[i] = LoadTextureFromImage(ship2Images[i]);
+    }
+
+    Image ship3Images[2];
+    Texture2D ship3Textures[2];
+    for (int i = 0; i < 2; i++) {
+        ship3Images[i] = LoadImage(ship3Files[i]);
+        ImageResize(&ship3Images[i], cellSize * 3, cellSize); //zmniejsz do 3x1 kafelka
+        ship3Textures[i] = LoadTextureFromImage(ship3Images[i]);
+    }
+
+    Image ship4Images[1];
+    Texture2D ship4Textures[1];
+    for (int i = 0; i < 1; i++) {
+        ship4Images[i] = LoadImage(ship4Files[i]);
+        ImageResize(&ship4Images[i], cellSize * 4, cellSize); //zmniejsz do 4x1 kafelka
+        ship4Textures[i] = LoadTextureFromImage(ship4Images[i]);
+    }
+
+    //inicjalizacja tablicy gracza
+    board *playerBoard = initboard();
+
+    //incjalizacja statków
+    ship *playerShips = malloc(MAX_SHIPS * sizeof(ship));
+
+    int startX = screenWidth * 1 / 4 - (gridSize * cellSize) / 2; //wyśrodkowanie statków
+    int startY = (screenHeight - (gridSize * cellSize)) / 2;
+    int gridStartX = screenWidth * 3 / 4 - (gridSize * cellSize) / 2;
+    int gridStartY = (screenHeight - (gridSize * cellSize)) / 2;
+    int shipIndex = 0;
+
+    for (int i = 0; i < 4; i++) {
+        int spacing = cellSize * 1 + cellSize;
+        playerShips[shipIndex] = (struct ship){
+            .pos = { startX + i * spacing, startY },
+            .sprite = ship1Images[i],
+            .texture = ship1Textures[i],
+            .hitbox = { startX + i * spacing, startY, ship1Textures[i].width, ship1Textures[i].height },
+            .isUpdating = false,
+            .length = 1,
+			.kierunek = 1,
+            .updateHitbox = UpdateHitbox,
+            .updateShip = UpdateShip,
+            .boardplace = malloc(1 * sizeof(shiptile))
+        };
+        shipIndex++;
+    }
+    for (int i = 0; i < 3; i++) {
+        int spacing = cellSize * 2 + cellSize;
+        playerShips[shipIndex] = (struct ship){
+            .pos = { startX + i * spacing, startY + cellSize },
+            .sprite = ship2Images[i],
+            .texture = ship2Textures[i],
+            .hitbox = { startX + i * spacing, startY + cellSize, ship2Textures[i].width, ship2Textures[i].height },
+            .isUpdating = false,
+            .length = 2,
+			.kierunek = 1,
+            .updateHitbox = UpdateHitbox,
+            .updateShip = UpdateShip,
+            .boardplace = malloc(2 * sizeof(shiptile))
+        };
+        shipIndex++;
+    }
+    for (int i = 0; i < 2; i++) {
+        int spacing = cellSize * 3 + cellSize;
+        playerShips[shipIndex] = (struct ship){
+            .pos = { startX + i * spacing, startY + 2 * cellSize },
+            .sprite = ship3Images[i],
+            .texture = ship3Textures[i],
+            .hitbox = { startX + i * spacing, startY + 2 * cellSize, ship3Textures[i].width, ship3Textures[i].height },
+            .isUpdating = false,
+            .length = 3,
+			.kierunek = 1,
+            .updateHitbox = UpdateHitbox,
+            .updateShip = UpdateShip,
+            .boardplace = malloc(3 * sizeof(shiptile))
+        };
+        shipIndex++;
+    }
+    int spacing = cellSize * 4 + cellSize;
+    playerShips[shipIndex] = (struct ship){
+        .pos = { startX, startY + 3 * cellSize },
+        .sprite = ship4Images[0],
+        .texture = ship4Textures[0],
+        .hitbox = { startX, startY + 3 * cellSize, ship4Textures[0].width, ship4Textures[0].height },
+        .isUpdating = false,
+        .length = 4,
+		.kierunek = 1,
+        .updateHitbox = UpdateHitbox,
+        .updateShip = UpdateShip,
+        .boardplace = malloc(4 * sizeof(shiptile))
+    };
+    shipIndex++;
+
+    bool isDragging = false;
+
+    while (!WindowShouldClose())
+    {
+        // Update ships
+        for (int i = 0; i < MAX_SHIPS; i++) {
+            playerShips[i].updateShip(&isDragging, &playerShips[i]);
+            if (isDragging && playerShips[i].isUpdating) {
+                if (playerShips[i].pos.x >= gridStartX && playerShips[i].pos.x <= gridStartX + gridSize * cellSize &&
+                    playerShips[i].pos.y >= gridStartY && playerShips[i].pos.y <= gridStartY + gridSize * cellSize) {
+                    SnapToGrid(&playerShips[i], gridStartX, gridStartY, cellSize);
+                }
+            }
+        }
+
+
+        if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+            for (int i = 0; i < MAX_SHIPS; i++) {
+                if (playerShips[i].isUpdating) {
+                    // Check if the ship is within the grid boundaries
+                    if (playerShips[i].pos.x >= gridStartX && playerShips[i].pos.x <= gridStartX + gridSize * cellSize &&
+                        playerShips[i].pos.y >= gridStartY && playerShips[i].pos.y <= gridStartY + gridSize * cellSize) {
+                        SnapToGrid(&playerShips[i], gridStartX, gridStartY, cellSize);
+                    }
+                    playerShips[i].isUpdating = false;
+                    isDragging = false;
+                }
+            }
+        }
+
+        BeginDrawing();
+
+        ClearBackground(RAYWHITE);
+
+        DrawLine(screenWidth / 2, 0, screenWidth / 2, screenHeight, BLACK); // Pionowa linia
+
+        DrawText("Press ESC to exit", 10, 10, 20, DARKGRAY);
+
+        for (int i = 0; i < gridSize; i++) {
+            char label[3]; // Increased size to accommodate two-digit numbers
+            snprintf(label, sizeof(label), "%c", 'A' + i);
+            DrawText(label, gridStartX + i * cellSize + cellSize / 2 - 5, gridStartY - 30, 20, BLACK);
+            snprintf(label, sizeof(label), "%d", i + 1);
+            DrawText(label, gridStartX - 30, gridStartY + i * cellSize + cellSize / 2 - 10, 20, BLACK);
+        }
+
+        for (int i = 0; i < gridSize; i++) {
+            for (int j = 0; j < gridSize; j++) {
+                DrawRectangleLines(gridStartX + j * cellSize, gridStartY + i * cellSize, cellSize, cellSize, BLACK);
+            }
+        }
+
+        // Draw ships
+        for (int i = 0; i < MAX_SHIPS; i++) {
+            DrawTexture(playerShips[i].texture, (int)playerShips[i].pos.x, (int)playerShips[i].pos.y, WHITE);
+        }
+		
+        EndDrawing();
+    }
+
+    //Układanie statków na w zmiennej playerBoard
+    for (int i = 0; i < MAX_SHIPS; i++) {
+
+    int gridX = (playerShips[i].pos.x - gridStartX)/cellSize;
+    int gridY = (playerShips[i].pos.y - gridStartY)/cellSize;
+
+    if(gridX>=0&&gridY>=0){
+		int dl=playerShips[i].length;
+		ship *playerS = initship(dl);
+		placeStatek(playerBoard, playerS, (pair){gridX, gridY}, playerShips[i].kierunek);
+	}
+}
+	printf("Contents of playerBoard:\n");
+    printboard(playerBoard);
+
+    // Unload textures
+    for (int i = 0; i < 4; i++) {
+        UnloadTexture(ship1Textures[i]);
+    }
+    for (int i = 0; i < 3; i++) {
+        UnloadTexture(ship2Textures[i]);
+    }
+    for (int i = 0; i < 2; i++) {
+        UnloadTexture(ship3Textures[i]);
+    }
+    for (int i = 0; i < 1; i++) {
+        UnloadTexture(ship4Textures[i]);
+    }
+
+    GameData gameData = {playerBoard, playerShips, MAX_SHIPS};
+    return gameData;
+}
+
+
+
+
+
+
+
+
+//tu gameplay
+
 	ship* initship(int type)
 	{													//trzeba bedzie zaktualizowac funkcje tak aby aktualizowala polozenie,hitbox i sprite w interfejsie graficznym. 
 														//funkcja spelnia absolutne minimum do testowania mechanik
@@ -72,6 +328,7 @@ void SnapToGrid(struct ship* s, int gridStartX, int gridStartY, int cellSize) 		
 		{
 			statek->boardplace[i].got_shot=0;
 		}
+		statek->kierunek=0;
 		statek->type = type;
 		return statek;
 	}
@@ -126,14 +383,14 @@ board* initboard()
 	{ 	printf("typ: %d kierunek:%d\n",curr_ship->type,direction);															//nie kladzie statku jestli jest on zle polozony(nie zwraca bledu) 
 		switch (direction)
 		{
-		case 1:
+		case 0:
 		for (int i = 0; i < (int)(curr_ship->type); i++)
 		{	pair tpair = {begin.x,(begin.y+i)};
 			if (!isLegal(boardtab,tpair))
 			{
 				return;
 			}
-			//else{break;}
+			else{break;}
 		}
 		for (int i = 0; i < (int)(curr_ship->type); i++)
 		{	shiptile temp = {{begin.x,(begin.y+i)},0};
@@ -142,14 +399,14 @@ board* initboard()
 		}
 		
 			break;
-		case 2:
+		case 1:
 		for (int i = 0; i < (int)(curr_ship->type); i++)
 		{	pair tpair = {begin.x+i,(begin.y)};
 			if (!isLegal(boardtab,tpair))
 			{
 				return;
 			}
-			//else{break;}
+			else{break;}
 		}
 		for (int i = 0; i < (int)(curr_ship->type); i++)
 		{	shiptile temp = {{begin.x+i,(begin.y)},0};
@@ -158,14 +415,14 @@ board* initboard()
 		}
 		
 			break;
-			case 3:
+			case 2:
 		for (int i = 0; i < (int)(curr_ship->type); i++)
 		{	pair tpair = {begin.x,(begin.y-i)};
 			if (!isLegal(boardtab,tpair))
 			{
 				return;
 			}
-			//else{break;}
+			else{break;}
 		}
 		for (int i = 0; i < (int)(curr_ship->type); i++)
 		{	shiptile temp = {begin.x,(begin.y-i)};
@@ -174,7 +431,7 @@ board* initboard()
 		}
 		
 			break;
-			case 4:
+			case 3:
 		for (int i = 0; i < (int)(curr_ship->type); i++)
 		{	pair tpair = {begin.x-i,(begin.y)};
 			if (!isLegal(boardtab,tpair))
@@ -182,7 +439,7 @@ board* initboard()
 				
 				return;
 			}
-			//else{break;}
+			else{break;}
 		}
 		for (int i = 0; i < (int)(curr_ship->type); i++)
 		{	shiptile temp = {begin.x-i,(begin.y)};
@@ -410,7 +667,7 @@ bool CheckWinCondition(board *playerBoard) //czy wszystkie statki zostały zestr
     }
     return true; //prawda, jeśli wszystkie statki zostały zestrzelone
 };
-void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *enemyShip) //na razie biore po jednym statku, ale w wersji bardziej grywalnej bedzie ich tu z oczywistych powodow wiecej
+void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShips, ship *enemyShip) //na razie biore po jednym statku, ale w wersji bardziej grywalnej bedzie ich tu z oczywistych powodow wiecej
 {
     //być może ta część wypadałoby żeby była w #define, ale na razie napisałam tak
     int playerOffsetX = 50;
@@ -512,9 +769,9 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
 
             // Check win conditions
             if (CheckWinCondition(playerBoard)) {
-                gameState = GAME_AI_WON;
+                //gameState = GAME_AI_WON;
             } else if (CheckWinCondition(enemyBoard)) {
-                gameState = GAME_PLAYER_WON;
+                //gameState = GAME_PLAYER_WON;
             }
         } else {
             if (gameState == GAME_PLAYER_WON) {
@@ -544,7 +801,7 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 Vector2 mousePos = GetMousePosition();
                 if (CheckCollisionPointRec(mousePos, playAgainButton)) {
-                    ResetGame(&playerBoard, &enemyBoard, &playerShip, &enemyShip);
+                    ResetGame(&playerBoard, &enemyBoard, &playerShips, &enemyShip);
                     gameState = GAME_RUNNING;
                     playerTurn = true;
                     message[0] = '\0';
