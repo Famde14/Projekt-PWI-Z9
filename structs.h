@@ -4,9 +4,11 @@
 #define STRUCTS_H
 #define BOARD_SIZE 10
 #define TILE_SIZE 40
+
 typedef enum { //struct przechowujący stan gry
     GAME_RUNNING,
-    GAME_PLAYER_WON,
+    GAME_PLAYER1_WON,
+	GAME_PLAYER2_WON,
     GAME_AI_WON
 } GameState;
 
@@ -14,6 +16,7 @@ typedef struct pair{
 	float x;
 	float y;
 }pair;
+
 typedef struct shiptile
 {
 	pair cords;
@@ -31,6 +34,7 @@ typedef struct ship{
 	void (*updateHitbox)(struct ship*);	//ustala wymiary hitbox'u
 	void (*updateShip)(bool* isDragging, struct ship*);	//aktualizuje pozycję i rotację obiektu; isDragging ma spwawdzać, czy jakiś statek nie jest już przeciągany
 }ship;
+
 typedef struct {
     ship *BOARD[BOARD_SIZE][BOARD_SIZE]; //plansza gracza
     bool shots[BOARD_SIZE][BOARD_SIZE]; //strzały gracza

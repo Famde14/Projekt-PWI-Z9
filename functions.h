@@ -17,6 +17,7 @@ struct array_cordinals* Get_array_cordinals(int offsetX, int offsetY);//przekszt
 /*gameplay*/
 void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *enemyShip); //funkcja do obslugi gry (inicjuje okienko oraz dodany jest jakis biedny postgame)
 /*do dodania*/
+void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, ship *player2Ship); //funkcja do obslugi gry gracz vs gracz
 ship* initship(int type);
 void delship(ship* statek);
 #endif
