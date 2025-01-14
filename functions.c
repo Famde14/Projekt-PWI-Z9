@@ -7,14 +7,14 @@
 
 #define MAX_SHIPS 10
 
-void UpdateHitbox(struct ship* s) {		//ustala pozycję i wymiary hitbox'u
+void UpdateHitbox(ship* s) {		//ustala pozycję i wymiary hitbox'u
     s->hitbox.x = s->pos.x;
     s->hitbox.y = s->pos.y;
     s->hitbox.width = s->texture.width;
     s->hitbox.height = s->texture.height;
 }
 
-void mouse_drag(int key, struct ship* s, Color color){	//ustala położenie obiektu po pozycji myszy
+void mouse_drag(int key, ship* s, Color color){	//ustala położenie obiektu po pozycji myszy
 	if(IsMouseButtonDown(key)){
 		s->pos.x = GetMouseX() - s->texture.width / 2;		//poprawka na pozycję myszy
 		s->pos.y = GetMouseY() - s->texture.height / 2;
@@ -31,7 +31,7 @@ void rotate(int key, Image* sprite, Texture2D* texture){	//ustala rotację obiek
 	*texture = LoadTextureFromImage(*sprite);	//załaduj nową teksturę
 }
 
-void UpdateShip(bool* isDragging, struct ship* s)
+void UpdateShip(bool* isDragging, ship* s)
 {	//wywołuje mouse_drag i rotate
 
 	if(*isDragging && !s->isUpdating) return; //jeśli jakiś statek jest już przeciągany, nie przeciągaj drugiego
@@ -66,32 +66,58 @@ void UpdateShip(bool* isDragging, struct ship* s)
         *isDragging = false;
     }
 }
-void SnapToGrid(struct ship* s, int gridStartX, int gridStartY, int cellSize) {
-    s->pos.x = gridStartX + ((int)((s->pos.x - gridStartX) / cellSize)) * cellSize;
-    s->pos.y = gridStartY + ((int)((s->pos.y - gridStartY) / cellSize)) * cellSize;
-    s->updateHitbox(s);
+void SnapToGrid(ship *s, int gridStartX, int gridStartY, int cellSize)
+{
+	s->pos.x = gridStartX + ((int)((s->pos.x - gridStartX) / cellSize)) * cellSize;
+	s->pos.y = gridStartY + ((int)((s->pos.y - gridStartY) / cellSize)) * cellSize;
+	s->updateHitbox(s);
 
-    if (s->boardplace != NULL) {
-        free(s->boardplace);
-    }
-    s->boardplace = (shiptile*)malloc(s->length * sizeof(shiptile));
+	if (s->boardplace != NULL)
+	{
+		free(s->boardplace);
+	}
+	s->boardplace = (shiptile *)malloc(s->length * sizeof(shiptile));
 
-    // Update boardplace array with grid coordinates
-    for (int i = 0; i < s->length; i++) {
-        s->boardplace[i].cords.x = (s->pos.x - gridStartX) / cellSize + i;
-        s->boardplace[i].cords.y = (s->pos.y - gridStartY) / cellSize;
-        s->boardplace[i].got_shot = false;
-    }
+	// Update boardplace array with grid coordinates
+	for (int i = 0; i < s->length; i++)
+	{
+		// kierunek  to liczby z zakresu 0 - góra, 1 - prawo, 2 - dół, 3 - lewo
+		if (s->kierunek == 0)
+		{
+			s->boardplace[i].cords.x = (s->pos.x - gridStartX) / cellSize;
+			s->boardplace[i].cords.y = (s->pos.y - gridStartY) / cellSize + i;
+		}
+		else if (s->kierunek == 1)
+		{
+			s->boardplace[i].cords.x = (s->pos.x - gridStartX) / cellSize + i;
+			s->boardplace[i].cords.y = (s->pos.y - gridStartY) / cellSize;
+		}
+		else if (s->kierunek == 2)
+		{
+			s->boardplace[i].cords.x = (s->pos.x - gridStartX) / cellSize;
+			s->boardplace[i].cords.y = (s->pos.y - gridStartY) / cellSize + i;
+		}
+		else if(s->kierunek == 3)
+		{
+			s->boardplace[i].cords.x = (s->pos.x - gridStartX) / cellSize + i;
+			s->boardplace[i].cords.y = (s->pos.y - gridStartY) / cellSize;
+		}
+		// s->boardplace[i].cords.x = (s->pos.x - gridStartX) / cellSize + i;
+		// s->boardplace[i].cords.y = (s->pos.y - gridStartY) / cellSize;
+		// s->boardplace[i].got_shot = false;
+	}
 
-    //do pomocniczego wypisywania
-    PrintShipPositions(s);
+	// do pomocniczego wypisywania
+	PrintShipPositions(s);
 }
 
-void PrintShipPositions(struct ship* s) {
-    printf("Ship positions (grid coordinates):\n");
-    for (int i = 0; i < s->length; i++) {
-        printf("Tile %d: (%.0f, %.0f)\n", i, s->boardplace[i].cords.x, s->boardplace[i].cords.y);
-    }
+void PrintShipPositions(ship *s)
+{
+	printf("Ship positions (grid coordinates):\n");
+	for (int i = 0; i < s->length; i++)
+	{
+		printf("Kierunek: %d Tile %d: (%.0f, %.0f)\n", s->kierunek, i, s->boardplace[i].cords.x, s->boardplace[i].cords.y);
+	}
 }
 
 GameData GameSet() {
@@ -156,7 +182,7 @@ GameData GameSet() {
 
     for (int i = 0; i < 4; i++) {
         int spacing = cellSize * 1 + cellSize;
-        playerShips[shipIndex] = (struct ship){
+        playerShips[shipIndex] = (ship){
             .pos = { startX + i * spacing, startY },
             .sprite = ship1Images[i],
             .texture = ship1Textures[i],
@@ -172,7 +198,7 @@ GameData GameSet() {
     }
     for (int i = 0; i < 3; i++) {
         int spacing = cellSize * 2 + cellSize;
-        playerShips[shipIndex] = (struct ship){
+        playerShips[shipIndex] = (ship){
             .pos = { startX + i * spacing, startY + cellSize },
             .sprite = ship2Images[i],
             .texture = ship2Textures[i],
@@ -188,7 +214,7 @@ GameData GameSet() {
     }
     for (int i = 0; i < 2; i++) {
         int spacing = cellSize * 3 + cellSize;
-        playerShips[shipIndex] = (struct ship){
+        playerShips[shipIndex] = (ship){
             .pos = { startX + i * spacing, startY + 2 * cellSize },
             .sprite = ship3Images[i],
             .texture = ship3Textures[i],
@@ -203,7 +229,7 @@ GameData GameSet() {
         shipIndex++;
     }
     int spacing = cellSize * 4 + cellSize;
-    playerShips[shipIndex] = (struct ship){
+    playerShips[shipIndex] = (ship){
         .pos = { startX, startY + 3 * cellSize },
         .sprite = ship4Images[0],
         .texture = ship4Textures[0],
@@ -354,6 +380,7 @@ board* initboard()
 	{
 		if(boardtab!=NULL){free(boardtab);}//nie zwolnie statkow gdyz musialbym sledzic czy dany statek nie zostal zwolniony wczesniej. Normalnie to od tego bylyby smart pointery ale jako ze to c to bedzie to problem osoby inicjujacej statek
 	};
+
 	bool isLegal(board* player,pair tile)
 	{	
 		if(tile.y>9||tile.y<0||tile.x>9||tile.x<0){
@@ -379,79 +406,100 @@ board* initboard()
 		//printf("legalne  ");
 		return 1;
 	}
-	void placeStatek(board* boardtab,ship* curr_ship,pair begin,int direction)//1-gora 2-prawo 3-dol 4-lewo 
-	{ 	printf("typ: %d kierunek:%d\n",curr_ship->type,direction);															//nie kladzie statku jestli jest on zle polozony(nie zwraca bledu) 
-		switch (direction)
+	void placeStatek(board *boardtab, ship *curr_ship, pair begin, int direction) // 0-gora 1-prawo 2-dol 3-lewo
+{
+	printf("typ: %d kierunek:%d begin(%d, %d)\n", curr_ship->type, direction, (int)begin.x, (int)begin.y); // nie kladzie statku jestli jest on zle polozony(nie zwraca bledu)
+	switch (direction)
+	{
+	case 0:
+		for (int i = 0; i < (int)(curr_ship->type); i++)
 		{
-		case 0:
-		for (int i = 0; i < (int)(curr_ship->type); i++)
-		{	pair tpair = {begin.x,(begin.y+i)};
-			if (!isLegal(boardtab,tpair))
+			pair tpair = {begin.x, (begin.y + i)};
+			if (!isLegal(boardtab, tpair))
 			{
 				return;
 			}
-			else{break;}
+			else
+			{
+				break;
+			}
 		}
 		for (int i = 0; i < (int)(curr_ship->type); i++)
-		{	shiptile temp = {{begin.x,(begin.y+i)},0};
-			boardtab->BOARD[(unsigned int)begin.x][(unsigned int)begin.y+i]=curr_ship;
-			curr_ship->boardplace[i]=temp;
+		{
+			shiptile temp = {{begin.x, (begin.y + i)}, 0};
+			boardtab->BOARD[(unsigned int)begin.x][(unsigned int)begin.y + i] = curr_ship;
+			curr_ship->boardplace[i] = temp;
 		}
-		
-			break;
-		case 1:
+
+		break;
+	case 1:
 		for (int i = 0; i < (int)(curr_ship->type); i++)
-		{	pair tpair = {begin.x+i,(begin.y)};
-			if (!isLegal(boardtab,tpair))
+		{
+			pair tpair = {begin.x + i, (begin.y)};
+			if (!isLegal(boardtab, tpair))
 			{
 				return;
 			}
-			else{break;}
+			else
+			{
+				break;
+			}
 		}
 		for (int i = 0; i < (int)(curr_ship->type); i++)
-		{	shiptile temp = {{begin.x+i,(begin.y)},0};
-			boardtab->BOARD[(unsigned int)begin.x+i][(unsigned int)begin.y]=curr_ship;
-			curr_ship->boardplace[i]=temp;
+		{
+			shiptile temp = {{begin.x + i, (begin.y)}, 0};
+			boardtab->BOARD[(unsigned int)begin.x + i][(unsigned int)begin.y] = curr_ship;
+			curr_ship->boardplace[i] = temp;
 		}
-		
-			break;
-			case 2:
+
+		break;
+	case 2:
 		for (int i = 0; i < (int)(curr_ship->type); i++)
-		{	pair tpair = {begin.x,(begin.y-i)};
-			if (!isLegal(boardtab,tpair))
+		{
+			pair tpair = {begin.x, (begin.y + i)};
+			if (!isLegal(boardtab, tpair))
 			{
 				return;
 			}
-			else{break;}
-		}
-		for (int i = 0; i < (int)(curr_ship->type); i++)
-		{	shiptile temp = {begin.x,(begin.y-i)};
-			boardtab->BOARD[(unsigned int)begin.x][(unsigned int)begin.y-i]=curr_ship;
-			curr_ship->boardplace[i]=temp;
-		}
-		
-			break;
-			case 3:
-		for (int i = 0; i < (int)(curr_ship->type); i++)
-		{	pair tpair = {begin.x-i,(begin.y)};
-			if (!isLegal(boardtab,tpair))
+			else
 			{
-				
+				break;
+			}
+		}
+		for (int i = 0; i < (int)(curr_ship->type); i++)
+		{
+			shiptile temp = {begin.x, (begin.y + i)};
+			boardtab->BOARD[(unsigned int)begin.x][(unsigned int)begin.y + i] = curr_ship;
+			curr_ship->boardplace[i] = temp;
+		}
+
+		break;
+	case 3:
+		for (int i = 0; i < (int)(curr_ship->type); i++)
+		{
+			pair tpair = {begin.x + i, (begin.y)};
+			if (!isLegal(boardtab, tpair))
+			{
+
 				return;
 			}
-			else{break;}
+			else
+			{
+				break;
+			}
 		}
 		for (int i = 0; i < (int)(curr_ship->type); i++)
-		{	shiptile temp = {begin.x-i,(begin.y)};
-			boardtab->BOARD[(unsigned int)begin.x-i][(unsigned int)begin.y]=curr_ship;
-			curr_ship->boardplace[i]=temp;
+		{
+			shiptile temp = {begin.x + i, (begin.y)};
+			boardtab->BOARD[(unsigned int)begin.x + i][(unsigned int)begin.y] = curr_ship;
+			curr_ship->boardplace[i] = temp;
 		}
-		
-			break;
-		default:
-			break;
-		}
+
+		break;
+	default:
+		break;
 	}
+}
 
 	void beingshot(ship* curr_ship,pair paira)
 	{
@@ -559,8 +607,8 @@ void shoot(board *playerBoard, pair shot)
 		}
 	};
 ;
-struct array_cordinals* Get_array_cordinals(int offsetX, int offsetY) {
-    struct array_cordinals* cordinal = (struct array_cordinals*)malloc(sizeof(struct array_cordinals));
+array_cordinals* Get_array_cordinals(int offsetX, int offsetY) {
+    array_cordinals* cordinal = (array_cordinals*)malloc(sizeof(array_cordinals));
     if (cordinal == NULL) return NULL;
 
     int x = GetMouseX();
@@ -706,7 +754,7 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShips, ship *en
 
             if (playerTurn) {
                 if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-                    struct array_cordinals *cords = Get_array_cordinals(enemyOffsetX, enemyOffsetY);
+                    array_cordinals *cords = Get_array_cordinals(enemyOffsetX, enemyOffsetY);
                     if(cords==NULL) break;
                     int x = cords->x;
                     int y = cords->y;

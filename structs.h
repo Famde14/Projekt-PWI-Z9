@@ -38,11 +38,13 @@ typedef struct {
     ship *BOARD[BOARD_SIZE][BOARD_SIZE]; //plansza gracza
     bool shots[BOARD_SIZE][BOARD_SIZE]; //strzały gracza
 } board;
+
 //struct z hit_headers.h
-struct array_cordinals{//współrzędne w sensie trafiania statku
+typedef struct array_cordinals{//współrzędne w sensie trafiania statku
     int x;//od 0 do 9
     int y;//od 0 do 9
-};
+}array_cordinals;
+
 typedef struct {
     board* playerBoard;
     ship* playerShips;
