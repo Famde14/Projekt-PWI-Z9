@@ -45,4 +45,21 @@ struct array_cordinals{//współrzędne w sensie trafiania statku
     int y;//od 0 do 9
 };
 
+struct slider{
+	float val;			//wartość od 0.0 fo 1.0
+	char valText[4];	//służy do wyświetlania wartości
+	bool isActive;		//czy suwak został włączony (jeśli będzie menu pauzy to się przyda)
+						//unload assetów do zrobienia
+	bool isUpdating;	//true, gdy hand_texture jest aktualnie przeciągane
+	float y_pos;		//pozycja góry suwaka
+	float left;			//koordynaty lewej granicy
+	float right;		//koordynaty prawej granicy
+	Image sl_sprite;	//sprite tyłu suwaka
+	Texture2D sl_texture;
+	float handle;		//koordynaty główki
+	Image hand_sprite;	//sprite główki
+	Texture2D hand_texture;
+	Rectangle hitbox;	//hitbox tyłu suwaka
+};
+
 #endif

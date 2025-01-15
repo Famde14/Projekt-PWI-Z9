@@ -16,6 +16,8 @@ void printboard(board* boardtab);//funkcja rysuje tablice danego gracza. Na razi
 struct array_cordinals* Get_array_cordinals(int offsetX, int offsetY);//przekształca położenie myszki na położenie statku na planszy
 /*gameplay*/
 void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *enemyShip); //funkcja do obslugi gry (inicjuje okienko oraz dodany jest jakis biedny postgame)
+/*ustawienie*/
+void UpdateSlider(struct slider* s); //aktualizuje suwak służący do ustawiania np. głośności
 /*do dodania*/
 void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, ship *player2Ship); //funkcja do obslugi gry gracz vs gracz
 ship* initship(int type);

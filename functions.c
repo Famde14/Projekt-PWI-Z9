@@ -730,3 +730,49 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
 
     CloseWindow();
 }
+
+void UpdateSlider(struct slider* s){
+	s->hitbox.x = s->left - s->hand_texture.width / 2;
+    s->hitbox.y = s->y_pos;
+	s->hitbox.width = s->sl_texture.width + s->hand_texture.width;
+	s->hitbox.height = s->sl_texture.height;
+
+	if(s->isActive){
+		if((IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(GetMousePosition(), s->hitbox)) || (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && s->isUpdating)){
+
+		s->isUpdating = true;
+
+		}
+		else {
+			s->isUpdating = false;
+		}
+
+		if(s->isUpdating){
+			if(IsMouseButtonDown(MOUSE_BUTTON_LEFT)){
+
+				if(((GetMouseX() - s->hand_texture.width / 2) >= (s->left - s->hand_texture.width / 2))
+				&& ((GetMouseX() - s->hand_texture.width / 2) <= (s->right - s->hand_texture.width / 2))){
+					s->handle = GetMouseX() - s->hand_texture.width / 2;
+
+					s->val = (s->handle - s->left + s->hand_texture.width / 2) / (s->right - s->left);
+
+					s->val = floor(100*s->val)/100;
+				}
+				else if((GetMouseX() - s->hand_texture.width / 2) < (s->left - s->hand_texture.width / 2)){
+					s->handle = s->left - s->hand_texture.width / 2;
+					s->val = 0.0f;
+				}
+				else{
+					s->handle = s->right - s->hand_texture.width / 2;
+					s->val = 1.0f;
+				}
+			}
+		}
+		DrawTexture(s->sl_texture, (int)s->left, (int)s->y_pos, RAYWHITE);
+		DrawTexture(s->hand_texture, (int)s->handle, (int)s->y_pos, RAYWHITE);
+
+		snprintf(s->valText, sizeof(s->valText), "%d", (int)(s->val * 100));
+		DrawText(s->valText, (int)(s->right + s->hand_texture.width / 2), (int)(s->y_pos), s->hitbox.height, BLACK);
+
+	}
+}
