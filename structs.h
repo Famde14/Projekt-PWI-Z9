@@ -2,6 +2,7 @@
 //#include "functions.c"
 #ifndef STRUCTS_H
 #define STRUCTS_H
+
 #define BOARD_SIZE 10
 #define TILE_SIZE 40
 #define MAX_SHIPS 10
@@ -27,17 +28,19 @@ typedef struct shiptile
 }shiptile;
 
 typedef struct ship{
-	struct pair pos;	//pozycja lewego górnego rogu obiektu
-	Image sprite;
-	Texture2D texture;
-	Rectangle hitbox;
-	bool isUpdating;	//true, gdy obiekt jest aktualnie przeciągany
-	int length;         // długość statku
-	shiptile* boardplace; 
-	char type; // 1 - 1maszt 2 - 2-maszt 3 - 3maszt 4- 4maszt 
-	int kierunek;       // 1-gora 2-prawo 3-dol 4-lewo 
-	void (*updateHitbox)(struct ship*);	//ustala wymiary hitbox'u
-	void (*updateShip)(bool* isDragging, struct ship*);	//aktualizuje pozycję i rotację obiektu; isDragging ma spwawdzać, czy jakiś statek nie jest już przeciągany
+    struct pair pos; // pozycja lewego górnego rogu obiektu
+    Image sprite;
+    Texture2D texture;
+    Rectangle hitbox;
+    bool isUpdating;       // true, gdy obiekt jest aktualnie przeciągany
+    bool isPlaced;         // true, gdy obiekt jest już ustawiony na planszy
+    bool invalidPlacement; // true, gdy statek jest ustawiony niezgodnie z zasadami gry
+    int length;            // długość statku
+    shiptile *boardplace;
+    char type;                                           // 1 - 1maszt 2 - 2-maszt 3 - 3maszt 4- 4maszt
+    int kierunek;                                        // 1-gora 2-prawo 3-dol 4-lewo
+    void (*updateHitbox)(struct ship *);                 // ustala wymiary hitbox'u
+    void (*updateShip)(bool *isDragging, struct ship *); // aktualizuje pozycję i rotację obiektu; isDragging ma spwawdzać, czy jakiś statek nie jest już przeciągany
 }ship;
 
 typedef struct {

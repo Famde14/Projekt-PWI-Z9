@@ -107,7 +107,101 @@ void SnapToGrid(ship *s, int gridStartX, int gridStartY)
 	}
 
 	// do pomocniczego wypisywania
-	PrintShipPositions(s);
+	// PrintShipPositions(s);
+}
+
+void CheckShipPlacement(ship *ships)
+{
+    int matrix[10][10] = {0};
+
+    for (int i = 0; i < MAX_SHIPS; i++)
+    {
+        for (int j = 0; j < ships[i].length; j++)
+        {
+            if(ships[i].isPlaced == true)
+            {
+                if(matrix[(int)ships[i].boardplace[j].cords.x][(int)ships[i].boardplace[j].cords.y] == 0)
+                {
+                    matrix[(int)ships[i].boardplace[j].cords.x][(int)ships[i].boardplace[j].cords.y] = i+1;
+                }
+                else
+                {
+                    ships[i].invalidPlacement = true;
+                    ships[matrix[(int)ships[i].boardplace[j].cords.x][(int)ships[i].boardplace[j].cords.y] - 1].invalidPlacement = true;
+                }
+            }
+        }
+    }
+
+    for (int i = 0; i < MAX_SHIPS; i++)
+    {
+        ships[i].invalidPlacement = false;
+    }
+    
+    
+    for (int y = 0; y <= 9; y++)
+    {
+        for (int x = 0; x <= 9; x++)
+        {
+            if (matrix[x][y] != 0)
+            {
+                // Horizontal/vertical checks
+                if (x > 0 && matrix[x - 1][y] != 0 && matrix[x - 1][y] != matrix[x][y])
+                {
+                    ships[matrix[x][y] - 1].invalidPlacement = true;
+                    ships[matrix[x - 1][y] - 1].invalidPlacement = true;
+                }
+                if (x < 9 && matrix[x + 1][y] != 0 && matrix[x + 1][y] != matrix[x][y])
+                {
+                    ships[matrix[x][y] - 1].invalidPlacement = true;
+                    ships[matrix[x + 1][y] - 1].invalidPlacement = true;
+                }
+                if (y > 0 && matrix[x][y - 1] != 0 && matrix[x][y - 1] != matrix[x][y])
+                {
+                    ships[matrix[x][y] - 1].invalidPlacement = true;
+                    ships[matrix[x][y - 1] - 1].invalidPlacement = true;
+                }
+                if (y < 9 && matrix[x][y + 1] != 0 && matrix[x][y + 1] != matrix[x][y])
+                {
+                    ships[matrix[x][y] - 1].invalidPlacement = true;
+                    ships[matrix[x][y + 1] - 1].invalidPlacement = true;
+                }
+
+                // Diagonal checks (mark invalid if IDs are different)
+                if (x > 0 && y > 0 && matrix[x - 1][y - 1] != 0 && matrix[x - 1][y - 1] != matrix[x][y])
+                {
+                    ships[matrix[x][y] - 1].invalidPlacement = true;
+                    ships[matrix[x - 1][y - 1] - 1].invalidPlacement = true;
+                }
+                if (x < 9 && y > 0 && matrix[x + 1][y - 1] != 0 && matrix[x + 1][y - 1] != matrix[x][y])
+                {
+                    ships[matrix[x][y] - 1].invalidPlacement = true;
+                    ships[matrix[x + 1][y - 1] - 1].invalidPlacement = true;
+                }
+                if (x > 0 && y < 9 && matrix[x - 1][y + 1] != 0 && matrix[x - 1][y + 1] != matrix[x][y])
+                {
+                    ships[matrix[x][y] - 1].invalidPlacement = true;
+                    ships[matrix[x - 1][y + 1] - 1].invalidPlacement = true;
+                }
+                if (x < 9 && y < 9 && matrix[x + 1][y + 1] != 0 && matrix[x + 1][y + 1] != matrix[x][y])
+                {
+                    ships[matrix[x][y] - 1].invalidPlacement = true;
+                    ships[matrix[x + 1][y + 1] - 1].invalidPlacement = true;
+                }
+            }
+        }
+    }
+
+    /* // clear terminal
+    system("cls");
+    for (int y = 0; y <= 9; y++)
+    {
+        for (int x = 0; x <= 9; x++)
+        {
+            printf("%2d ", matrix[x][y]);
+        }
+        printf("\n");
+    } */
 }
 
 void PrintShipPositions(ship *s)
@@ -119,123 +213,130 @@ void PrintShipPositions(ship *s)
 	}
 }
 
-GameData GameSet() {
-
+GameData GameSet()
+{
     int game_phase = 0;
     int gridSize = 10; // Rozmiar planszy
-    //int TILE_SIZE = 50; // Rozmiar pojedynczej kratki (w pikselach)
+    // int TILE_SIZE = 50; // Rozmiar pojedynczej kratki (w pikselach)
 
-    //załadowanie tekstur statków
-    const char* ship1Files[] = {"textures/ship1.png", "textures/ship1.png", "textures/ship1.png", "textures/ship1.png"};
-    const char* ship2Files[] = {"textures/ship2.png", "textures/ship2.png", "textures/ship2.png"};
-    const char* ship3Files[] = {"textures/ship3.png", "textures/ship3.png"};
-    const char* ship4Files[] = {"textures/ship4.png"};
+    // załadowanie tekstur statków
+    const char *ship1Files[] = {"textures/ship1.png", "textures/ship1.png", "textures/ship1.png", "textures/ship1.png"};
+    const char *ship2Files[] = {"textures/ship2.png", "textures/ship2.png", "textures/ship2.png"};
+    const char *ship3Files[] = {"textures/ship3.png", "textures/ship3.png"};
+    const char *ship4Files[] = {"textures/ship4.png"};
 
     Image ship1Images[4];
     Texture2D ship1Textures[4];
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 4; i++)
+    {
         ship1Images[i] = LoadImage(ship1Files[i]);
-        ImageResize(&ship1Images[i], TILE_SIZE, TILE_SIZE); //zmniejsz do 1x1 kafelka
+        ImageResize(&ship1Images[i], TILE_SIZE, TILE_SIZE); // zmniejsz do 1x1 kafelka
         ship1Textures[i] = LoadTextureFromImage(ship1Images[i]);
     }
 
     Image ship2Images[3];
     Texture2D ship2Textures[3];
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 3; i++)
+    {
         ship2Images[i] = LoadImage(ship2Files[i]);
-        ImageResize(&ship2Images[i], TILE_SIZE * 2, TILE_SIZE); //zmniejsz do 2x1 kafelka
+        ImageResize(&ship2Images[i], TILE_SIZE * 2, TILE_SIZE); // zmniejsz do 2x1 kafelka
         ship2Textures[i] = LoadTextureFromImage(ship2Images[i]);
     }
 
     Image ship3Images[2];
     Texture2D ship3Textures[2];
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 2; i++)
+    {
         ship3Images[i] = LoadImage(ship3Files[i]);
-        ImageResize(&ship3Images[i], TILE_SIZE * 3, TILE_SIZE); //zmniejsz do 3x1 kafelka
+        ImageResize(&ship3Images[i], TILE_SIZE * 3, TILE_SIZE); // zmniejsz do 3x1 kafelka
         ship3Textures[i] = LoadTextureFromImage(ship3Images[i]);
     }
 
     Image ship4Images[1];
     Texture2D ship4Textures[1];
-    for (int i = 0; i < 1; i++) {
+    for (int i = 0; i < 1; i++)
+    {
         ship4Images[i] = LoadImage(ship4Files[i]);
-        ImageResize(&ship4Images[i], TILE_SIZE * 4, TILE_SIZE); //zmniejsz do 4x1 kafelka
+        ImageResize(&ship4Images[i], TILE_SIZE * 4, TILE_SIZE); // zmniejsz do 4x1 kafelka
         ship4Textures[i] = LoadTextureFromImage(ship4Images[i]);
     }
 
-    //inicjalizacja tablicy gracza
+    // inicjalizacja tablicy gracza
     board *playerBoard = initboard();
 
-    //incjalizacja statków
+    // incjalizacja statków
     ship *playerShips = malloc(MAX_SHIPS * sizeof(ship));
 
-    int startX = SCREENWIDTH * 1 / 4 - (gridSize * TILE_SIZE) / 2; //wyśrodkowanie statków
+    int startX = SCREENWIDTH * 1 / 4 - (gridSize * TILE_SIZE) / 2; // wyśrodkowanie statków
     int startY = (SCREENHEIGHT - (gridSize * TILE_SIZE)) / 2;
     int gridStartX = SCREENWIDTH * 3 / 4 - (gridSize * TILE_SIZE) / 2;
     int gridStartY = (SCREENHEIGHT - (gridSize * TILE_SIZE)) / 2;
     int shipIndex = 0;
 
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 4; i++)
+    {
         int spacing = TILE_SIZE * 1 + TILE_SIZE;
         playerShips[shipIndex] = (ship){
-            .pos = { startX + i * spacing, startY },
+            .pos = {startX + i * spacing, startY},
             .sprite = ship1Images[i],
             .texture = ship1Textures[i],
-            .hitbox = { startX + i * spacing, startY, ship1Textures[i].width, ship1Textures[i].height },
+            .hitbox = {startX + i * spacing, startY, ship1Textures[i].width, ship1Textures[i].height},
             .isUpdating = false,
+            .isPlaced = false,
             .length = 1,
-			.kierunek = 1,
+            .kierunek = 1,
             .updateHitbox = UpdateHitbox,
             .updateShip = UpdateShip,
-            .boardplace = malloc(1 * sizeof(shiptile))
-        };
+            .boardplace = malloc(1 * sizeof(shiptile))};
         shipIndex++;
     }
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 3; i++)
+    {
         int spacing = TILE_SIZE * 2 + TILE_SIZE;
         playerShips[shipIndex] = (ship){
-            .pos = { startX + i * spacing, startY + TILE_SIZE * 2 },
+            .pos = {startX + i * spacing, startY + TILE_SIZE * 2},
             .sprite = ship2Images[i],
             .texture = ship2Textures[i],
-            .hitbox = { startX + i * spacing, startY + TILE_SIZE * 2, ship2Textures[i].width, ship2Textures[i].height },
+            .hitbox = {startX + i * spacing, startY + TILE_SIZE * 2, ship2Textures[i].width, ship2Textures[i].height},
             .isUpdating = false,
+            .isPlaced = false,
             .length = 2,
-			.kierunek = 1,
+            .kierunek = 1,
             .updateHitbox = UpdateHitbox,
             .updateShip = UpdateShip,
-            .boardplace = malloc(2 * sizeof(shiptile))
-        };
+            .boardplace = malloc(2 * sizeof(shiptile))};
         shipIndex++;
     }
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 2; i++)
+    {
         int spacing = TILE_SIZE * 3 + TILE_SIZE;
         playerShips[shipIndex] = (ship){
-            .pos = { startX + i * spacing, startY + TILE_SIZE * 4},
+            .pos = {startX + i * spacing, startY + TILE_SIZE * 4},
             .sprite = ship3Images[i],
             .texture = ship3Textures[i],
-            .hitbox = { startX + i * spacing, startY + TILE_SIZE * 4, ship3Textures[i].width, ship3Textures[i].height },
+            .hitbox = {startX + i * spacing, startY + TILE_SIZE * 4, ship3Textures[i].width, ship3Textures[i].height},
             .isUpdating = false,
+            .isPlaced = false,
             .length = 3,
-			.kierunek = 1,
+            .kierunek = 1,
             .updateHitbox = UpdateHitbox,
             .updateShip = UpdateShip,
-            .boardplace = malloc(3 * sizeof(shiptile))
-        };
+            .boardplace = malloc(3 * sizeof(shiptile))};
         shipIndex++;
     }
     int spacing = TILE_SIZE * 4 + TILE_SIZE;
     playerShips[shipIndex] = (ship){
-        .pos = { startX, startY + TILE_SIZE * 6},
+        .pos = {startX, startY + TILE_SIZE * 6},
         .sprite = ship4Images[0],
         .texture = ship4Textures[0],
-        .hitbox = { startX, startY + TILE_SIZE * 6, ship4Textures[0].width, ship4Textures[0].height },
+        .hitbox = {startX, startY + TILE_SIZE * 6, ship4Textures[0].width, ship4Textures[0].height},
         .isUpdating = false,
+        .isPlaced = false,
         .length = 4,
-		.kierunek = 1,
+        .kierunek = 1,
         .updateHitbox = UpdateHitbox,
         .updateShip = UpdateShip,
-        .boardplace = malloc(4 * sizeof(shiptile))
-    };
+        .boardplace = malloc(4 * sizeof(shiptile))};
     shipIndex++;
 
     bool isDragging = false;
@@ -243,25 +344,59 @@ GameData GameSet() {
     while (!WindowShouldClose())
     {
         // Update ships
-        for (int i = 0; i < MAX_SHIPS; i++) {
+        for (int i = 0; i < MAX_SHIPS; i++)
+        {
             playerShips[i].updateShip(&isDragging, &playerShips[i]);
-            if (isDragging && playerShips[i].isUpdating) {
-                if (playerShips[i].pos.x >= gridStartX && playerShips[i].pos.x <= gridStartX + gridSize * TILE_SIZE &&
-                    playerShips[i].pos.y >= gridStartY && playerShips[i].pos.y <= gridStartY + gridSize * TILE_SIZE) {
-                    SnapToGrid(&playerShips[i], gridStartX, gridStartY);
+            if (isDragging && playerShips[i].isUpdating)
+            {
+                // Sprawdzenie czy cały statek mieści się na planszy
+                if (playerShips[i].kierunek == 0 || playerShips[i].kierunek == 2) // Kierunek pionowy
+                {
+                    if (playerShips[i].pos.x >= gridStartX && playerShips[i].pos.x <= gridStartX + gridSize * TILE_SIZE &&
+                        playerShips[i].pos.y >= gridStartY && playerShips[i].pos.y + (int)playerShips[i].length * (TILE_SIZE - 3) <= gridStartY + gridSize * TILE_SIZE)
+                    {
+                        // Jeśli tak, to ustawiamy statek na planszy, wyrównujemy do kratki i sprawdzamy kolizje
+                        playerShips[i].isPlaced = true;
+                        SnapToGrid(&playerShips[i], gridStartX, gridStartY);
+                        CheckShipPlacement(playerShips);
+                    }
+                    else
+                    {
+                        playerShips[i].isPlaced = false;
+                    }
+                }
+                else // Kierunek poziomy
+                {
+                    if (playerShips[i].pos.x >= gridStartX && playerShips[i].pos.x + (int)playerShips[i].length * (TILE_SIZE - 3) <= gridStartX + gridSize * TILE_SIZE &&
+                        playerShips[i].pos.y >= gridStartY && playerShips[i].pos.y <= gridStartY + gridSize * TILE_SIZE)
+                    {
+                        // Jeśli tak, to ustawiamy statek na planszy, wyrównujemy do kratki i sprawdzamy kolizje
+                        playerShips[i].isPlaced = true;
+                        SnapToGrid(&playerShips[i], gridStartX, gridStartY);
+                        CheckShipPlacement(playerShips);
+                    }
+                    else
+                    {
+                        playerShips[i].isPlaced = false;
+                    }
                 }
             }
         }
 
-
-        if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
-            for (int i = 0; i < MAX_SHIPS; i++) {
-                if (playerShips[i].isUpdating) {
+        if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+        {
+            for (int i = 0; i < MAX_SHIPS; i++)
+            {
+                if (playerShips[i].isUpdating)
+                {
+                    printf("dziala\n");
                     // Check if the ship is within the grid boundaries
                     if (playerShips[i].pos.x >= gridStartX && playerShips[i].pos.x <= gridStartX + gridSize * TILE_SIZE &&
-                        playerShips[i].pos.y >= gridStartY && playerShips[i].pos.y <= gridStartY + gridSize * TILE_SIZE) {
+                        playerShips[i].pos.y >= gridStartY && playerShips[i].pos.y <= gridStartY + gridSize * TILE_SIZE)
+                    {
                         SnapToGrid(&playerShips[i], gridStartX, gridStartY);
                     }
+
                     playerShips[i].isUpdating = false;
                     isDragging = false;
                 }
@@ -272,103 +407,141 @@ GameData GameSet() {
 
         ClearBackground(RAYWHITE);
 
-        if (game_phase == 0) {
+        if (game_phase == 0)
+        {
             // Rysowanie ekranu startowego
             DrawText("Welcome to Statki The Game!", SCREENWIDTH / 2 - MeasureText("Welcome to Statki The Game!", 40) / 2, SCREENHEIGHT / 2 - 50, 40, DARKBLUE);
             DrawText("Press SPACE, to start", SCREENWIDTH / 2 - MeasureText("Press SPACE to start", 20) / 2, SCREENHEIGHT / 2 + 20, 20, DARKGRAY);
 
             // Przejście do gry po wciśnięciu spacji
-            if (IsKeyPressed(KEY_SPACE)) {
+            if (IsKeyPressed(KEY_SPACE))
+            {
                 game_phase = 1;
             }
-        } 
-        else if (game_phase == 1) {
-
-        DrawLine(SCREENWIDTH / 2, 0, SCREENWIDTH / 2, SCREENHEIGHT, BLACK); // Pionowa linia
-
-        Rectangle StartBattleButton = {SCREENWIDTH - 260, SCREENHEIGHT -100, 220, 50};
-        DrawRectangleRec(StartBattleButton, LIGHTGRAY);
-        DrawText("Zacznij bitwe!", StartBattleButton.x + 10, StartBattleButton.y + 10, 30, BLACK);
-
-        if (CheckCollisionPointRec(GetMousePosition(), StartBattleButton) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+        }
+        else if (game_phase == 1)
         {
-            for(int alpha = 0; alpha <= 255; alpha+=5)
-            {
-                BeginDrawing();
-                DrawRectangle(0, 0, SCREENWIDTH, SCREENHEIGHT, (Color){0, 0, 0, alpha});
-                for (int i = 0; i < gridSize; i++) {
-                    char label[3]; // Increased size to accommodate two-digit numbers
-                    snprintf(label, sizeof(label), "%c", 'A' + i);
-                    DrawText(label, gridStartX + i * TILE_SIZE + TILE_SIZE / 2 - 5, gridStartY - 30, 20, BLACK);
-                    snprintf(label, sizeof(label), "%d", i + 1);
-                    DrawText(label, gridStartX - 30, gridStartY + i * TILE_SIZE + TILE_SIZE / 2 - 10, 20, BLACK);
-                }
 
-                for (int i = 0; i < gridSize; i++) {
-                    for (int j = 0; j < gridSize; j++) {
-                        DrawRectangleLines(gridStartX + j * TILE_SIZE, gridStartY + i * TILE_SIZE, TILE_SIZE, TILE_SIZE, BLACK);
+            DrawLine(SCREENWIDTH / 2, 0, SCREENWIDTH / 2, SCREENHEIGHT, BLACK); // Pionowa linia
+
+            Rectangle StartBattleButton = {SCREENWIDTH - 260, SCREENHEIGHT - 100, 220, 50};
+            DrawRectangleRec(StartBattleButton, LIGHTGRAY);
+            DrawText("Zacznij bitwe!", StartBattleButton.x + 10, StartBattleButton.y + 10, 30, BLACK);
+
+            if (CheckCollisionPointRec(GetMousePosition(), StartBattleButton) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+            {
+                bool allShipsPlaced = true;
+                for (int i = 0; i < MAX_SHIPS; i++)
+                {
+                    if (playerShips[i].invalidPlacement == true)
+                    {
+                        // Jeśli którykolwiek statek jest źle ustawiony, to nie można rozpocząć bitwy. Wyświetlany jest komunikat o błędzie.
+                        allShipsPlaced = false;
+                        ClearBackground(RAYWHITE);
+                        BeginDrawing();
+                        DrawRectangle(SCREENWIDTH / 2, SCREENHEIGHT / 4, SCREENWIDTH / 2, SCREENHEIGHT / 2, RED);
+                        DrawText("Statki sa zle ustawione!", SCREENWIDTH / 2 + MeasureText("Statki sa zle ustawione!", 30) / 2, SCREENHEIGHT / 2 - 15, 30, WHITE);
+                        EndDrawing();
+                        usleep(1000000);
+                        break;
                     }
                 }
-                // Draw ships
-                //for (int i = 0; i < MAX_SHIPS; i++) {
-                //    DrawTexture(playerShips[i].texture, (int)playerShips[i].pos.x, (int)playerShips[i].pos.y, WHITE);
-                //}
-                EndDrawing();
-                usleep(40000);
+
+                if (allShipsPlaced)
+                {
+                    for (int alpha = 0; alpha <= 255; alpha += 5)
+                    {
+                        BeginDrawing();
+                        DrawRectangle(0, 0, SCREENWIDTH, SCREENHEIGHT, (Color){0, 0, 0, alpha});
+                        for (int i = 0; i < gridSize; i++)
+                        {
+                            char label[3]; // Increased size to accommodate two-digit numbers
+                            snprintf(label, sizeof(label), "%c", 'A' + i);
+                            DrawText(label, gridStartX + i * TILE_SIZE + TILE_SIZE / 2 - 5, gridStartY - 30, 20, BLACK);
+                            snprintf(label, sizeof(label), "%d", i + 1);
+                            DrawText(label, gridStartX - 30, gridStartY + i * TILE_SIZE + TILE_SIZE / 2 - 10, 20, BLACK);
+                        }
+
+                        for (int i = 0; i < gridSize; i++)
+                        {
+                            for (int j = 0; j < gridSize; j++)
+                            {
+                                DrawRectangleLines(gridStartX + j * TILE_SIZE, gridStartY + i * TILE_SIZE, TILE_SIZE, TILE_SIZE, BLACK);
+                            }
+                        }
+                        // Draw ships
+                        // for (int i = 0; i < MAX_SHIPS; i++) {
+                        //    DrawTexture(playerShips[i].texture, (int)playerShips[i].pos.x, (int)playerShips[i].pos.y, WHITE);
+                        //}
+                        EndDrawing();
+                        usleep(40000);
+                    }
+                    break;
+                }
             }
-            break;
-        }
 
-        for (int i = 0; i < gridSize; i++) {
-            char label[3]; // Increased size to accommodate two-digit numbers
-            snprintf(label, sizeof(label), "%c", 'A' + i);
-            DrawText(label, gridStartX + i * TILE_SIZE + TILE_SIZE / 2 - 5, gridStartY - 30, 20, BLACK);
-            snprintf(label, sizeof(label), "%d", i + 1);
-            DrawText(label, gridStartX - 30, gridStartY + i * TILE_SIZE + TILE_SIZE / 2 - 10, 20, BLACK);
-        }
+            for (int i = 0; i < gridSize; i++)
+            {
+                char label[3]; // Increased size to accommodate two-digit numbers
+                snprintf(label, sizeof(label), "%c", 'A' + i);
+                DrawText(label, gridStartX + i * TILE_SIZE + TILE_SIZE / 2 - 5, gridStartY - 30, 20, BLACK);
+                snprintf(label, sizeof(label), "%d", i + 1);
+                DrawText(label, gridStartX - 30, gridStartY + i * TILE_SIZE + TILE_SIZE / 2 - 10, 20, BLACK);
+            }
 
-        for (int i = 0; i < gridSize; i++) {
-            for (int j = 0; j < gridSize; j++) {
-                DrawRectangleLines(gridStartX + j * TILE_SIZE, gridStartY + i * TILE_SIZE, TILE_SIZE, TILE_SIZE, BLACK);
+            for (int i = 0; i < gridSize; i++)
+            {
+                for (int j = 0; j < gridSize; j++)
+                {
+                    DrawRectangleLines(gridStartX + j * TILE_SIZE, gridStartY + i * TILE_SIZE, TILE_SIZE, TILE_SIZE, BLACK);
+                }
+            }
+
+            // Draw ships
+            for (int i = 0; i < MAX_SHIPS; i++)
+            {
+                if (playerShips[i].invalidPlacement)
+                    DrawTexture(playerShips[i].texture, (int)playerShips[i].pos.x, (int)playerShips[i].pos.y, RED); // Czerwony tint dla nieprawidłowo ustawionych statków
+                else
+                    DrawTexture(playerShips[i].texture, (int)playerShips[i].pos.x, (int)playerShips[i].pos.y, WHITE); // Normalny tint dla statków ustawionych prawidłowo
             }
         }
 
-        // Draw ships
-        for (int i = 0; i < MAX_SHIPS; i++) {
-            DrawTexture(playerShips[i].texture, (int)playerShips[i].pos.x, (int)playerShips[i].pos.y, WHITE);
-        }
-            
-        }
-		
         EndDrawing();
     }
 
-    //Układanie statków na w zmiennej playerBoard
-    for (int i = 0; i < MAX_SHIPS; i++) {
+    // Układanie statków na w zmiennej playerBoard
+    for (int i = 0; i < MAX_SHIPS; i++)
+    {
+        int gridX = (playerShips[i].pos.x - gridStartX) / TILE_SIZE;
+        int gridY = (playerShips[i].pos.y - gridStartY) / TILE_SIZE;
 
-    int gridX = (playerShips[i].pos.x - gridStartX)/TILE_SIZE;
-    int gridY = (playerShips[i].pos.y - gridStartY)/TILE_SIZE;
+        if (gridX >= 0 && gridY >= 0)
+        {
+            int dl = playerShips[i].length;
+            ship *playerS = initship(dl);
+            placeStatek(playerBoard, playerS, (pair){gridX, gridY}, playerShips[i].kierunek);
+        }
+    }
 
-    if(gridX>=0&&gridY>=0){
-		int dl=playerShips[i].length;
-		ship *playerS = initship(dl);
-		placeStatek(playerBoard, playerS, (pair){gridX, gridY}, playerShips[i].kierunek);
-	}
-}
-	printf("Contents of playerBoard:\n");
+    printf("Contents of playerBoard:\n");
     printboard(playerBoard);
 
     // Unload textures
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 4; i++)
+    {
         UnloadTexture(ship1Textures[i]);
     }
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 3; i++)
+    {
         UnloadTexture(ship2Textures[i]);
     }
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 2; i++)
+    {
         UnloadTexture(ship3Textures[i]);
     }
-    for (int i = 0; i < 1; i++) {
+    for (int i = 0; i < 1; i++)
+    {
         UnloadTexture(ship4Textures[i]);
     }
 
@@ -928,10 +1101,11 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
     CloseWindow();
 }
 
-void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, ship *player2Ship) {
-    int player1OffsetX = (SCREENWIDTH * 1/3)-20 - (BOARD_SIZE * TILE_SIZE) / 2;
+void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, ship *player2Ship)
+{
+    int player1OffsetX = (SCREENWIDTH * 1 / 3) - 20 - (BOARD_SIZE * TILE_SIZE) / 2;
     int player1OffsetY = (SCREENHEIGHT - (BOARD_SIZE * TILE_SIZE)) / 2;
-    int player2OffsetX = (SCREENWIDTH * 2/3)+20 - (BOARD_SIZE * TILE_SIZE) / 2;
+    int player2OffsetX = (SCREENWIDTH * 2 / 3) + 20 - (BOARD_SIZE * TILE_SIZE) / 2;
     int player2OffsetY = (SCREENHEIGHT - (BOARD_SIZE * TILE_SIZE)) / 2;
 
     bool player1Turn = true;
@@ -939,13 +1113,14 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
     GameState gameState = GAME_RUNNING;
     char message[128] = "";
 
-    for (int alpha = 255; alpha >= 0; alpha-=5) {
+    for (int alpha = 255; alpha >= 0; alpha -= 5)
+    {
         BeginDrawing();
         ClearBackground(RAYWHITE);
         DrawText("Gracz 1: Twoja plansza", player1OffsetX, player1OffsetY - 30, 20, BLACK);
         DrawBoard(player1Board, player1OffsetX, player1OffsetY, false);
 
-         DrawText("Plansza przeciwnika", player2OffsetX, player2OffsetY - 30, 20, BLACK);
+        DrawText("Plansza przeciwnika", player2OffsetX, player2OffsetY - 30, 20, BLACK);
         DrawBoard(player2Board, player2OffsetX, player2OffsetY, true);
         DrawText(message, SCREENWIDTH / 2 - MeasureText(message, 20) / 2, SCREENHEIGHT - 50, 20, DARKGRAY);
 
@@ -958,17 +1133,21 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
         usleep(40000);
     }
 
-    while (!WindowShouldClose()) {
+    while (!WindowShouldClose())
+    {
         BeginDrawing();
         ClearBackground(RAYWHITE);
 
-        if (IsKeyPressed(KEY_ESCAPE)) {
+        if (IsKeyPressed(KEY_ESCAPE))
+        {
             CloseWindow();
             break;
         }
 
-        if (gameState == GAME_RUNNING) {
-            if (turnEnded) { // Wyświetlanie przycisku do zmiany tury, tak aby gracze nie widzieli plansz przeciwnika
+        if (gameState == GAME_RUNNING)
+        {
+            if (turnEnded)
+            { // Wyświetlanie przycisku do zmiany tury, tak aby gracze nie widzieli plansz przeciwnika
                 BeginDrawing();
                 ClearBackground(RAYWHITE);
 
@@ -976,14 +1155,17 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                 DrawRectangleRec(newTurnButton, LIGHTGRAY);
                 DrawText("Nowa tura", newTurnButton.x + 30, newTurnButton.y + 10, 30, BLACK);
 
-                if (CheckCollisionPointRec(GetMousePosition(), newTurnButton) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                if (CheckCollisionPointRec(GetMousePosition(), newTurnButton) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+                {
                     player1Turn = !player1Turn;
                     turnEnded = false;
                 }
             }
-            else {
+            else
+            {
                 // Wyświetlanie plansz i obsługa tury gracza
-                if (player1Turn) {
+                if (player1Turn)
+                {
                     DrawText("Gracz 1: Twoja plansza", player1OffsetX, player1OffsetY - 30, 20, BLACK);
                     DrawBoard(player1Board, player1OffsetX, player1OffsetY, false);
 
@@ -992,39 +1174,51 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
 
                     DrawText(message, SCREENWIDTH / 2 - MeasureText(message, 20) / 2, SCREENHEIGHT - 50, 20, DARKGRAY);
 
-                    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+                    {
                         struct array_cordinals *cords = Get_array_cordinals(player2OffsetX, player2OffsetY);
-                        if (cords != NULL) {
+                        if (cords != NULL)
+                        {
                             int x = cords->x;
                             int y = cords->y;
                             free(cords);
 
-                            if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE) {
+                            if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE)
+                            {
                                 pair shot = {x, y};
-                                if (!player2Board->shots[x][y]) {
+                                if (!player2Board->shots[x][y])
+                                {
                                     shoot(player2Board, shot);
                                     snprintf(message, sizeof(message), "Gracz 1 strzelił w (%d, %d)", x, y);
-                                    if (player2Board->BOARD[x][y] != NULL) {
+                                    if (player2Board->BOARD[x][y] != NULL)
+                                    {
                                         ship *currShip = player2Board->BOARD[x][y];
                                         bool sunk = true;
-                                        for (int i = 0; i < currShip->type; i++) {
-                                            if (!currShip->boardplace[i].got_shot) {
+                                        for (int i = 0; i < currShip->type; i++)
+                                        {
+                                            if (!currShip->boardplace[i].got_shot)
+                                            {
                                                 sunk = false;
                                                 break;
                                             }
                                         }
-                                        if (sunk) {
+                                        if (sunk)
+                                        {
                                             snprintf(message, sizeof(message), "Gracz 1 zatopił statek!");
                                         }
                                     }
                                     turnEnded = true;
-                                } else {
+                                }
+                                else
+                                {
                                     snprintf(message, sizeof(message), "Strzelałeś już tutaj!");
                                 }
                             }
                         }
                     }
-                } else {
+                }
+                else
+                {
                     DrawText("Gracz 2: Twoja plansza", player2OffsetX, player2OffsetY - 30, 20, BLACK);
                     DrawBoard(player2Board, player2OffsetX, player2OffsetY, false);
 
@@ -1033,33 +1227,43 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
 
                     DrawText(message, SCREENWIDTH / 2 - MeasureText(message, 20) / 2, SCREENHEIGHT - 50, 20, DARKGRAY);
 
-                    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+                    {
                         struct array_cordinals *cords = Get_array_cordinals(player1OffsetX, player1OffsetY);
-                        if (cords != NULL) {
+                        if (cords != NULL)
+                        {
                             int x = cords->x;
                             int y = cords->y;
                             free(cords);
 
-                            if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE) {
+                            if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE)
+                            {
                                 pair shot = {x, y};
-                                if (!player1Board->shots[x][y]) {
+                                if (!player1Board->shots[x][y])
+                                {
                                     shoot(player1Board, shot);
                                     snprintf(message, sizeof(message), "Gracz 2 strzelił w (%d, %d)", x, y);
-                                    if (player1Board->BOARD[x][y] != NULL) {
+                                    if (player1Board->BOARD[x][y] != NULL)
+                                    {
                                         ship *currShip = player1Board->BOARD[x][y];
                                         bool sunk = true;
-                                        for (int i = 0; i < currShip->type; i++) {
-                                            if (!currShip->boardplace[i].got_shot) {
+                                        for (int i = 0; i < currShip->type; i++)
+                                        {
+                                            if (!currShip->boardplace[i].got_shot)
+                                            {
                                                 sunk = false;
                                                 break;
                                             }
                                         }
-                                        if (sunk) {
+                                        if (sunk)
+                                        {
                                             snprintf(message, sizeof(message), "Gracz 2 zatopił statek!");
                                         }
                                     }
                                     turnEnded = true;
-                                } else {
+                                }
+                                else
+                                {
                                     snprintf(message, sizeof(message), "Strzelałeś już tutaj!");
                                 }
                             }
@@ -1067,38 +1271,49 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                     }
                 }
 
-                
-                if (CheckWinCondition(player1Board)) {
+                if (CheckWinCondition(player1Board))
+                {
                     gameState = GAME_PLAYER2_WON;
-                } else if (CheckWinCondition(player2Board)) {
+                }
+                else if (CheckWinCondition(player2Board))
+                {
                     gameState = GAME_PLAYER1_WON;
                 }
             }
-        } else {
+        }
+        else
+        {
             // Wyświetlenie wyniku gry
-            if (gameState == GAME_PLAYER1_WON) {
+            if (gameState == GAME_PLAYER1_WON)
+            {
                 DrawText("Gracz 1 Wygrywa!", SCREENWIDTH / 2 - MeasureText("Gracz 1 Wygrywa!", 40) / 2, SCREENHEIGHT / 2 - 20, 40, GREEN);
-            } else if (gameState == GAME_PLAYER2_WON) {
+            }
+            else if (gameState == GAME_PLAYER2_WON)
+            {
                 DrawText("Gracz 2 Wygrywa!", SCREENWIDTH / 2 - MeasureText("Gracz 2 Wygrywa!", 40) / 2, SCREENHEIGHT / 2 - 20, 40, GREEN);
             }
 
             Rectangle playAgainButton = {SCREENWIDTH / 2 - 150, SCREENHEIGHT / 2 + 50, 300, 50};
-                DrawRectangleRec(playAgainButton, LIGHTGRAY);
-                DrawText("Zagraj ponownie", playAgainButton.x + 30, playAgainButton.y + 10, 30, BLACK);
+            DrawRectangleRec(playAgainButton, LIGHTGRAY);
+            DrawText("Zagraj ponownie", playAgainButton.x + 30, playAgainButton.y + 10, 30, BLACK);
 
-                Rectangle closeButton = {SCREENWIDTH / 2 - 100, SCREENHEIGHT / 2 + 120, 200, 50};
-                DrawRectangleRec(closeButton, LIGHTGRAY);
-                DrawText("Zamknij", closeButton.x + 70, closeButton.y + 10, 30, BLACK);
+            Rectangle closeButton = {SCREENWIDTH / 2 - 100, SCREENHEIGHT / 2 + 120, 200, 50};
+            DrawRectangleRec(closeButton, LIGHTGRAY);
+            DrawText("Zamknij", closeButton.x + 70, closeButton.y + 10, 30, BLACK);
 
-                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+            {
                 Vector2 mousePos = GetMousePosition();
-                if (CheckCollisionPointRec(mousePos, playAgainButton)) {
+                if (CheckCollisionPointRec(mousePos, playAgainButton))
+                {
                     ResetGame(&player1Board, &player2Board, &player1Ship, &player2Ship);
                     gameState = GAME_RUNNING;
                     player1Turn = true;
                     turnEnded = false;
                     message[0] = '\0';
-                } else if (CheckCollisionPointRec(mousePos, closeButton)) {
+                }
+                else if (CheckCollisionPointRec(mousePos, closeButton))
+                {
                     CloseWindow();
                     break;
                 }
