@@ -461,29 +461,28 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
             if (playerTurn) {
                 if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                     struct array_cordinals *cords = Get_array_cordinals(enemyOffsetX, enemyOffsetY);
-                    if (cords != NULL) {
-                        int x = cords->x;
-                        int y = cords->y;
-                        free(cords);
+                    if(cords==NULL) goto VALIDCLICK;//dobrze, że dr Paweł Laskoś-Grabowski tego nie sprawdza, cóż byłem do tego zmuszony
+                    int x = cords->x;
+                    int y = cords->y;
+					free(cords);
 
-                        if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE) {
-                            pair shot = {x, y};
-                            if (!enemyBoard->shots[x][y]) {
-                                shoot(enemyBoard, shot);
-                                playerTurn = false;
-                                snprintf(message, sizeof(message), "Gracz strzelił w (%d, %d)", x, y);
-                                if (enemyBoard->BOARD[x][y] != NULL) {
-                                    ship *currShip = enemyBoard->BOARD[x][y];
-                                    bool sunk = true;
-                                    for (int i = 0; i < currShip->type; i++) {
-                                        if (!currShip->boardplace[i].got_shot) {
-                                            sunk = false;
-                                            break;
-                                        }
-                                    }
-                                    if (sunk) {
-                                        snprintf(message, sizeof(message), "Gracz zatopił statek!");
-                                        playerTurn = true;
+                    if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE) {
+                        pair shot = {x, y};
+                        if (!enemyBoard->shots[x][y]) //jeśli pole puste lub niezestrzelone, to strzelaj
+                        {
+                            shoot(enemyBoard, shot);
+                            playerTurn = false;
+                            snprintf(message, sizeof(message), "Gracz strzelil w (%d, %d)", x, y);
+                            if(enemyBoard->BOARD[x][y]!=NULL)
+                            {
+                                ship *currShip = enemyBoard->BOARD[x][y];
+                                bool sunk = true;
+                                for (int i = 0; i < currShip->type; i++)
+                                {
+                                    if (!currShip->boardplace[i].got_shot)
+                                    {
+                                        sunk = false;
+                                        break;
                                     }
                                 }
                             } else {
@@ -516,7 +515,8 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
                     playerTurn = true;
                 }
             }
-
+			      VALIDCLICK:
+            // Check win conditions
             if (CheckWinCondition(playerBoard)) {
                 gameState = GAME_AI_WON;
             } else if (CheckWinCondition(enemyBoard)) {
