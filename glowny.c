@@ -14,6 +14,9 @@ int main()
 
     ship *playerShip;
 
+    InitWindow(SCREENWIDTH, SCREENHEIGHT, "The Statki Game");
+    SetTargetFPS(60);
+
     GameData gameData = GameSet();          //uruchomienie ustawiania statków
     
     PlayGame(gameData.playerBoard, enemyBoard,playerShip,enemyShip);
