@@ -107,7 +107,7 @@ void SnapToGrid(ship *s, int gridStartX, int gridStartY)
 	}
 
 	// do pomocniczego wypisywania
-	// PrintShipPositions(s);
+	//PrintShipPositions(s);
 }
 
 void CheckShipPlacement(ship *ships)
@@ -383,50 +383,58 @@ GameData GameSet()
             }
         }
 
-        if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
-        {
-            for (int i = 0; i < MAX_SHIPS; i++)
-            {
-                if (playerShips[i].isUpdating)
-                {
-                    printf("dziala\n");
-                    // Check if the ship is within the grid boundaries
-                    if (playerShips[i].pos.x >= gridStartX && playerShips[i].pos.x <= gridStartX + gridSize * TILE_SIZE &&
-                        playerShips[i].pos.y >= gridStartY && playerShips[i].pos.y <= gridStartY + gridSize * TILE_SIZE)
-                    {
-                        SnapToGrid(&playerShips[i], gridStartX, gridStartY);
-                    }
-
-                    playerShips[i].isUpdating = false;
-                    isDragging = false;
-                }
-            }
-        }
-
         BeginDrawing();
 
         ClearBackground(RAYWHITE);
 
-        if (game_phase == 0)
-        {
+        if (game_phase == 0) {
             // Rysowanie ekranu startowego
-            DrawText("Welcome to Statki The Game!", SCREENWIDTH / 2 - MeasureText("Welcome to Statki The Game!", 40) / 2, SCREENHEIGHT / 2 - 50, 40, DARKBLUE);
-            DrawText("Press SPACE, to start", SCREENWIDTH / 2 - MeasureText("Press SPACE to start", 20) / 2, SCREENHEIGHT / 2 + 20, 20, DARKGRAY);
+            DrawText("Witaj w Statki The Game!", SCREENWIDTH / 2 - MeasureText("Witaj w Statki The Game!", 40) / 2, SCREENHEIGHT / 2 - 80, 40, DARKBLUE);
+    
+            // Wymiary i pozycje przycisków
+            int buttonWidth = 200;
+            int buttonHeight = 50;
+            int buttonYSpacing = 10;
 
-            // Przejście do gry po wciśnięciu spacji
-            if (IsKeyPressed(KEY_SPACE))
-            {
-                game_phase = 1;
+            Rectangle buttonOnePlayer = { SCREENWIDTH / 2 - buttonWidth / 2, SCREENHEIGHT / 2 - buttonHeight / 2, buttonWidth, buttonHeight };
+            Rectangle buttonTwoPlayers = { SCREENWIDTH / 2 - buttonWidth / 2, SCREENHEIGHT / 2 - buttonHeight / 2 + buttonHeight + buttonYSpacing, buttonWidth, buttonHeight };
+
+            // Rysowanie przycisków
+            DrawRectangleRec(buttonOnePlayer, LIGHTGRAY);
+            DrawRectangleRec(buttonTwoPlayers, LIGHTGRAY);
+            DrawText("Jeden gracz", buttonOnePlayer.x + buttonWidth / 2 - MeasureText("Jeden gracz", 20) / 2, buttonOnePlayer.y + buttonHeight / 2 - 10, 20, BLACK);
+            DrawText("Dwóch graczy", buttonTwoPlayers.x + buttonWidth / 2 - MeasureText("Dwóch graczy", 20) / 2, buttonTwoPlayers.y + buttonHeight / 2 - 10, 20, BLACK);
+
+            // Wykrywanie kliknięcia myszką
+            Vector2 mousePoint = GetMousePosition();
+
+            if (CheckCollisionPointRec(mousePoint, buttonOnePlayer) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                game_phase = 1; // Tryb jednego gracza
+            } 
+            else if (CheckCollisionPointRec(mousePoint, buttonTwoPlayers) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                game_phase = 2; // Tryb dwóch graczy
+            }
+
+            // Zmiana koloru przycisku po najechaniu myszką
+            if (CheckCollisionPointRec(mousePoint, buttonOnePlayer)) {
+                DrawRectangleLinesEx(buttonOnePlayer, 2, DARKBLUE);
+            } 
+            else if (CheckCollisionPointRec(mousePoint, buttonTwoPlayers)) {
+                DrawRectangleLinesEx(buttonTwoPlayers, 2, DARKBLUE);
             }
         }
-        else if (game_phase == 1)
+        if (game_phase > 0) 
         {
-
             DrawLine(SCREENWIDTH / 2, 0, SCREENWIDTH / 2, SCREENHEIGHT, BLACK); // Pionowa linia
 
             Rectangle StartBattleButton = {SCREENWIDTH - 260, SCREENHEIGHT - 100, 220, 50};
             DrawRectangleRec(StartBattleButton, LIGHTGRAY);
             DrawText("Zacznij bitwe!", StartBattleButton.x + 10, StartBattleButton.y + 10, 30, BLACK);
+        
+            if (CheckCollisionPointRec(GetMousePosition(), StartBattleButton))
+            {
+                DrawRectangleLinesEx(StartBattleButton, 2, DARKBLUE);
+            }
 
             if (CheckCollisionPointRec(GetMousePosition(), StartBattleButton) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
             {
@@ -456,7 +464,7 @@ GameData GameSet()
                         for (int i = 0; i < gridSize; i++)
                         {
                             char label[3]; // Increased size to accommodate two-digit numbers
-                            snprintf(label, sizeof(label), "%c", 'A' + i);
+                          snprintf(label, sizeof(label), "%c", 'A' + i);
                             DrawText(label, gridStartX + i * TILE_SIZE + TILE_SIZE / 2 - 5, gridStartY - 30, 20, BLACK);
                             snprintf(label, sizeof(label), "%d", i + 1);
                             DrawText(label, gridStartX - 30, gridStartY + i * TILE_SIZE + TILE_SIZE / 2 - 10, 20, BLACK);
@@ -486,7 +494,7 @@ GameData GameSet()
                 snprintf(label, sizeof(label), "%c", 'A' + i);
                 DrawText(label, gridStartX + i * TILE_SIZE + TILE_SIZE / 2 - 5, gridStartY - 30, 20, BLACK);
                 snprintf(label, sizeof(label), "%d", i + 1);
-                DrawText(label, gridStartX - 30, gridStartY + i * TILE_SIZE + TILE_SIZE / 2 - 10, 20, BLACK);
+               DrawText(label, gridStartX - 30, gridStartY + i * TILE_SIZE + TILE_SIZE / 2 - 10, 20, BLACK);
             }
 
             for (int i = 0; i < gridSize; i++)
@@ -496,7 +504,6 @@ GameData GameSet()
                     DrawRectangleLines(gridStartX + j * TILE_SIZE, gridStartY + i * TILE_SIZE, TILE_SIZE, TILE_SIZE, BLACK);
                 }
             }
-
             // Draw ships
             for (int i = 0; i < MAX_SHIPS; i++)
             {
@@ -506,7 +513,6 @@ GameData GameSet()
                     DrawTexture(playerShips[i].texture, (int)playerShips[i].pos.x, (int)playerShips[i].pos.y, WHITE); // Normalny tint dla statków ustawionych prawidłowo
             }
         }
-
         EndDrawing();
     }
 
@@ -523,24 +529,23 @@ GameData GameSet()
             placeStatek(playerBoard, playerS, (pair){gridX, gridY}, playerShips[i].kierunek);
         }
     }
-
-    printf("Contents of playerBoard:\n");
+	printf("Contents of playerBoard:\n");
     printboard(playerBoard);
 
     // Unload textures
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < 4; i++) 
     {
         UnloadTexture(ship1Textures[i]);
     }
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 3; i++) 
     {
         UnloadTexture(ship2Textures[i]);
     }
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < 2; i++) 
     {
         UnloadTexture(ship3Textures[i]);
     }
-    for (int i = 0; i < 1; i++)
+    for (int i = 0; i < 1; i++) 
     {
         UnloadTexture(ship4Textures[i]);
     }
@@ -1101,11 +1106,10 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
     CloseWindow();
 }
 
-void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, ship *player2Ship)
-{
-    int player1OffsetX = (SCREENWIDTH * 1 / 3) - 20 - (BOARD_SIZE * TILE_SIZE) / 2;
+void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, ship *player2Ship) {
+    int player1OffsetX = (SCREENWIDTH * 1/3)-20 - (BOARD_SIZE * TILE_SIZE) / 2;
     int player1OffsetY = (SCREENHEIGHT - (BOARD_SIZE * TILE_SIZE)) / 2;
-    int player2OffsetX = (SCREENWIDTH * 2 / 3) + 20 - (BOARD_SIZE * TILE_SIZE) / 2;
+    int player2OffsetX = (SCREENWIDTH * 2/3)+20 - (BOARD_SIZE * TILE_SIZE) / 2;
     int player2OffsetY = (SCREENHEIGHT - (BOARD_SIZE * TILE_SIZE)) / 2;
 
     bool player1Turn = true;
@@ -1113,14 +1117,13 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
     GameState gameState = GAME_RUNNING;
     char message[128] = "";
 
-    for (int alpha = 255; alpha >= 0; alpha -= 5)
-    {
+    for (int alpha = 255; alpha >= 0; alpha-=5) {
         BeginDrawing();
         ClearBackground(RAYWHITE);
         DrawText("Gracz 1: Twoja plansza", player1OffsetX, player1OffsetY - 30, 20, BLACK);
         DrawBoard(player1Board, player1OffsetX, player1OffsetY, false);
 
-        DrawText("Plansza przeciwnika", player2OffsetX, player2OffsetY - 30, 20, BLACK);
+         DrawText("Plansza przeciwnika", player2OffsetX, player2OffsetY - 30, 20, BLACK);
         DrawBoard(player2Board, player2OffsetX, player2OffsetY, true);
         DrawText(message, SCREENWIDTH / 2 - MeasureText(message, 20) / 2, SCREENHEIGHT - 50, 20, DARKGRAY);
 
@@ -1133,21 +1136,17 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
         usleep(40000);
     }
 
-    while (!WindowShouldClose())
-    {
+    while (!WindowShouldClose()) {
         BeginDrawing();
         ClearBackground(RAYWHITE);
 
-        if (IsKeyPressed(KEY_ESCAPE))
-        {
+        if (IsKeyPressed(KEY_ESCAPE)) {
             CloseWindow();
             break;
         }
 
-        if (gameState == GAME_RUNNING)
-        {
-            if (turnEnded)
-            { // Wyświetlanie przycisku do zmiany tury, tak aby gracze nie widzieli plansz przeciwnika
+        if (gameState == GAME_RUNNING) {
+            if (turnEnded) { // Wyświetlanie przycisku do zmiany tury, tak aby gracze nie widzieli plansz przeciwnika
                 BeginDrawing();
                 ClearBackground(RAYWHITE);
 
@@ -1155,17 +1154,14 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                 DrawRectangleRec(newTurnButton, LIGHTGRAY);
                 DrawText("Nowa tura", newTurnButton.x + 30, newTurnButton.y + 10, 30, BLACK);
 
-                if (CheckCollisionPointRec(GetMousePosition(), newTurnButton) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
-                {
+                if (CheckCollisionPointRec(GetMousePosition(), newTurnButton) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                     player1Turn = !player1Turn;
                     turnEnded = false;
                 }
             }
-            else
-            {
+            else {
                 // Wyświetlanie plansz i obsługa tury gracza
-                if (player1Turn)
-                {
+                if (player1Turn) {
                     DrawText("Gracz 1: Twoja plansza", player1OffsetX, player1OffsetY - 30, 20, BLACK);
                     DrawBoard(player1Board, player1OffsetX, player1OffsetY, false);
 
@@ -1174,51 +1170,39 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
 
                     DrawText(message, SCREENWIDTH / 2 - MeasureText(message, 20) / 2, SCREENHEIGHT - 50, 20, DARKGRAY);
 
-                    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
-                    {
+                    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                         struct array_cordinals *cords = Get_array_cordinals(player2OffsetX, player2OffsetY);
-                        if (cords != NULL)
-                        {
+                        if (cords != NULL) {
                             int x = cords->x;
                             int y = cords->y;
                             free(cords);
 
-                            if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE)
-                            {
+                            if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE) {
                                 pair shot = {x, y};
-                                if (!player2Board->shots[x][y])
-                                {
+                                if (!player2Board->shots[x][y]) {
                                     shoot(player2Board, shot);
                                     snprintf(message, sizeof(message), "Gracz 1 strzelił w (%d, %d)", x, y);
-                                    if (player2Board->BOARD[x][y] != NULL)
-                                    {
+                                    if (player2Board->BOARD[x][y] != NULL) {
                                         ship *currShip = player2Board->BOARD[x][y];
                                         bool sunk = true;
-                                        for (int i = 0; i < currShip->type; i++)
-                                        {
-                                            if (!currShip->boardplace[i].got_shot)
-                                            {
+                                        for (int i = 0; i < currShip->type; i++) {
+                                            if (!currShip->boardplace[i].got_shot) {
                                                 sunk = false;
                                                 break;
                                             }
                                         }
-                                        if (sunk)
-                                        {
+                                        if (sunk) {
                                             snprintf(message, sizeof(message), "Gracz 1 zatopił statek!");
                                         }
                                     }
                                     turnEnded = true;
-                                }
-                                else
-                                {
+                                } else {
                                     snprintf(message, sizeof(message), "Strzelałeś już tutaj!");
                                 }
                             }
                         }
                     }
-                }
-                else
-                {
+                } else {
                     DrawText("Gracz 2: Twoja plansza", player2OffsetX, player2OffsetY - 30, 20, BLACK);
                     DrawBoard(player2Board, player2OffsetX, player2OffsetY, false);
 
@@ -1227,43 +1211,33 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
 
                     DrawText(message, SCREENWIDTH / 2 - MeasureText(message, 20) / 2, SCREENHEIGHT - 50, 20, DARKGRAY);
 
-                    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
-                    {
+                    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                         struct array_cordinals *cords = Get_array_cordinals(player1OffsetX, player1OffsetY);
-                        if (cords != NULL)
-                        {
+                        if (cords != NULL) {
                             int x = cords->x;
                             int y = cords->y;
                             free(cords);
 
-                            if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE)
-                            {
+                            if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE) {
                                 pair shot = {x, y};
-                                if (!player1Board->shots[x][y])
-                                {
+                                if (!player1Board->shots[x][y]) {
                                     shoot(player1Board, shot);
                                     snprintf(message, sizeof(message), "Gracz 2 strzelił w (%d, %d)", x, y);
-                                    if (player1Board->BOARD[x][y] != NULL)
-                                    {
+                                    if (player1Board->BOARD[x][y] != NULL) {
                                         ship *currShip = player1Board->BOARD[x][y];
                                         bool sunk = true;
-                                        for (int i = 0; i < currShip->type; i++)
-                                        {
-                                            if (!currShip->boardplace[i].got_shot)
-                                            {
+                                        for (int i = 0; i < currShip->type; i++) {
+                                            if (!currShip->boardplace[i].got_shot) {
                                                 sunk = false;
                                                 break;
                                             }
                                         }
-                                        if (sunk)
-                                        {
+                                        if (sunk) {
                                             snprintf(message, sizeof(message), "Gracz 2 zatopił statek!");
                                         }
                                     }
                                     turnEnded = true;
-                                }
-                                else
-                                {
+                                } else {
                                     snprintf(message, sizeof(message), "Strzelałeś już tutaj!");
                                 }
                             }
@@ -1271,49 +1245,38 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                     }
                 }
 
-                if (CheckWinCondition(player1Board))
-                {
+                
+                if (CheckWinCondition(player1Board)) {
                     gameState = GAME_PLAYER2_WON;
-                }
-                else if (CheckWinCondition(player2Board))
-                {
+                } else if (CheckWinCondition(player2Board)) {
                     gameState = GAME_PLAYER1_WON;
                 }
             }
-        }
-        else
-        {
+        } else {
             // Wyświetlenie wyniku gry
-            if (gameState == GAME_PLAYER1_WON)
-            {
+            if (gameState == GAME_PLAYER1_WON) {
                 DrawText("Gracz 1 Wygrywa!", SCREENWIDTH / 2 - MeasureText("Gracz 1 Wygrywa!", 40) / 2, SCREENHEIGHT / 2 - 20, 40, GREEN);
-            }
-            else if (gameState == GAME_PLAYER2_WON)
-            {
+            } else if (gameState == GAME_PLAYER2_WON) {
                 DrawText("Gracz 2 Wygrywa!", SCREENWIDTH / 2 - MeasureText("Gracz 2 Wygrywa!", 40) / 2, SCREENHEIGHT / 2 - 20, 40, GREEN);
             }
 
             Rectangle playAgainButton = {SCREENWIDTH / 2 - 150, SCREENHEIGHT / 2 + 50, 300, 50};
-            DrawRectangleRec(playAgainButton, LIGHTGRAY);
-            DrawText("Zagraj ponownie", playAgainButton.x + 30, playAgainButton.y + 10, 30, BLACK);
+                DrawRectangleRec(playAgainButton, LIGHTGRAY);
+                DrawText("Zagraj ponownie", playAgainButton.x + 30, playAgainButton.y + 10, 30, BLACK);
 
-            Rectangle closeButton = {SCREENWIDTH / 2 - 100, SCREENHEIGHT / 2 + 120, 200, 50};
-            DrawRectangleRec(closeButton, LIGHTGRAY);
-            DrawText("Zamknij", closeButton.x + 70, closeButton.y + 10, 30, BLACK);
+                Rectangle closeButton = {SCREENWIDTH / 2 - 100, SCREENHEIGHT / 2 + 120, 200, 50};
+                DrawRectangleRec(closeButton, LIGHTGRAY);
+                DrawText("Zamknij", closeButton.x + 70, closeButton.y + 10, 30, BLACK);
 
-            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
-            {
+                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 Vector2 mousePos = GetMousePosition();
-                if (CheckCollisionPointRec(mousePos, playAgainButton))
-                {
+                if (CheckCollisionPointRec(mousePos, playAgainButton)) {
                     ResetGame(&player1Board, &player2Board, &player1Ship, &player2Ship);
                     gameState = GAME_RUNNING;
                     player1Turn = true;
                     turnEnded = false;
                     message[0] = '\0';
-                }
-                else if (CheckCollisionPointRec(mousePos, closeButton))
-                {
+                } else if (CheckCollisionPointRec(mousePos, closeButton)) {
                     CloseWindow();
                     break;
                 }
