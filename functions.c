@@ -905,7 +905,7 @@ void DrawBoard(board *playerBoard, int offsetX, int offsetY, bool isEnemy) {
                     Color color = (isEnemy) ? RAYWHITE : BLUE;
                     DrawRectangle(tile.x, tile.y, tile.width, tile.height, color);
                 }
-                DrawRectangleLines(tile.x, tile.y, tile.width, tile.height, DARKGRAY); // Border lines
+                DrawRectangleLines(tile.x, tile.y, tile.width, tile.height, GRAY); // Border lines
             }
         }
     }
