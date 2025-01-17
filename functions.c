@@ -961,7 +961,13 @@ int islegal(int x, int y, int tab[10][10], int type) {
     return 1;  // Legalne miejsce
 }
 
+// Funkcja do losowego rozmieszczania statków
 int random_ai_ships(int tab[10][10], int typeindex, int randomized[10]) {
+    //printf("%i\n", typeindex);
+    //for(int i = 0; i < 10; i++){
+    //    printf("%i ", randomized[i]);
+    //}
+    //putchar('\n');
     if (typeindex > 10) return 0;  // Błąd danych
     if (typeindex == 10) return 1;  // Wszystkie statki rozmieszczone
 
@@ -981,7 +987,9 @@ int random_ai_ships(int tab[10][10], int typeindex, int randomized[10]) {
 
         // Sprawdzanie, czy wiersz y jest już zajęty
         if (randomized[y] == -1) {
-            continue;  // Wiersz już zajęty, próbujemy inny
+            for(int i = 0; i<10; i++){
+                if(randomized[i] != -1) y = i;
+            }
         }
 
         // Sprawdzamy, czy wylosowane miejsce jest legalne
@@ -1027,7 +1035,6 @@ int random_ai_ships(int tab[10][10], int typeindex, int randomized[10]) {
             }
         }
     }
-
     return 0;  // Nie udało się rozmieszczone statki
 }
 
@@ -1035,7 +1042,19 @@ board* init_ai_ships(){
     srand(time(NULL));
     int tablica[10][10] = {0};
     int randomized[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    TRYAGAIN:
     random_ai_ships(tablica, 0, randomized);
+    for(int i=0; i<10; i++){
+        if(randomized[i]!=-1){
+            for(int a=0; a<10; a++){
+                randomized[a] = a;
+                for(int b = 0; b<10; b++){
+                    tablica[a][b] = 0;
+                }
+            }
+            goto TRYAGAIN;
+        }
+    }
 
     board* k = initboard();
     if (k == NULL) {
