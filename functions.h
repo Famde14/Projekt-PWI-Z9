@@ -7,6 +7,9 @@ void UpdateHitbox(struct ship* s);	//ustala pozycję i wymiary hitbox'u
 void mouse_drag(int key, struct ship* s, Color color);//ustala położenie obiektu po pozycji mysz}
 void rotate(int key, Image* sprite, Texture2D* texture);   //ustala rotację obiektu
 void UpdateShip(bool* isDragging, struct ship* s);	//wywołuje mouse_drag i rotate
+void SnapToGrid(struct ship* s, int gridStartX, int gridStartY); //przypisuje statek do kratki
+void PrintShipPositions(struct ship*);//funkcja pomocnicza do wypisywania koordynatóœ statku
+GameData GameSet(); //uruchamia ustawianie statków
 /*plansza i interakcja z plansza*/
 board* initboard();
 void delboard(board* boardtab);
