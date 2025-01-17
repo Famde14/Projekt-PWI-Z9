@@ -6,11 +6,9 @@
 
 int main()
 {
-    board *enemyBoard = initboard();        //druga plansza
+    board *enemyBoard = init_ai_ships();        //druga plansza
     ship *enemyShip = initship(3);
     pair enemyStart = {4, 4};
-
-    placeStatek(enemyBoard, enemyShip, enemyStart, 1);
 
     ship *playerShip;
 
