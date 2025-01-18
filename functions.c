@@ -24,7 +24,7 @@ void mouse_drag(int key, ship* s, Color color){	//ustala położenie obiektu po 
 }
 
 void rotate(int key, Image* sprite, Texture2D* texture){	//ustala rotację obiektu
-	//UnloadTexture(*texture);					//usuwa poprednią teksturę
+	UnloadTexture(*texture);					//usuwa poprednią teksturę
 
 	if(key=='E') ImageRotateCW(sprite);		//obrót zgodnie z ruchem wskazówek zegara
 	else ImageRotateCCW(sprite);				//obrót przeciwnie z ruchem wskazówek zegara
@@ -534,8 +534,7 @@ GameData GameSet()
 	printf("Contents of playerBoard:\n");
     printboard(playerBoard);
 
-    // Unload textures - ponoć CloseWindow() zachowuje się jak Garbage Collector
-    /*
+    // Unload textures
     for (int i = 0; i < 4; i++) 
     {
         UnloadTexture(ship1Textures[i]);
@@ -551,7 +550,7 @@ GameData GameSet()
     for (int i = 0; i < 1; i++) 
     {
         UnloadTexture(ship4Textures[i]);
-    }*/
+    }
 
     GameData gameData = {playerBoard, playerShips, MAX_SHIPS};
     return gameData;
@@ -698,7 +697,7 @@ void placeStatek(board *boardtab, ship *curr_ship, pair begin, int direction) //
 		}
 		for (int i = 0; i < (int)(curr_ship->type); i++)
 		{
-			shiptile temp = {{begin.x, (begin.y + i)}, 0};
+			shiptile temp = {begin.x, (begin.y + i)};
 			boardtab->BOARD[(unsigned int)begin.x][(unsigned int)begin.y + i] = curr_ship;
 			curr_ship->boardplace[i] = temp;
 		}
@@ -720,7 +719,7 @@ void placeStatek(board *boardtab, ship *curr_ship, pair begin, int direction) //
 		}
 		for (int i = 0; i < (int)(curr_ship->type); i++)
 		{
-			shiptile temp = {{begin.x + i, (begin.y)}, 0};
+			shiptile temp = {begin.x + i, (begin.y)};
 			boardtab->BOARD[(unsigned int)begin.x + i][(unsigned int)begin.y] = curr_ship;
 			curr_ship->boardplace[i] = temp;
 		}
@@ -864,8 +863,8 @@ void ResetGame(board **playerBoard, board **enemyBoard, ship **playerShip, ship 
 {
     delboard(*playerBoard);
     delboard(*enemyBoard);
-    //delship(*playerShip);
-    //delship(*enemyShip);
+    delship(*playerShip);
+    delship(*enemyShip);
 
     *playerBoard = initboard();
     *enemyBoard = initboard();
