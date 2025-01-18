@@ -24,7 +24,7 @@ void UpdateSlider(struct slider* s); //aktualizuje suwak służący do ustawiani
 /*do dodania*/
 void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, ship *player2Ship); //funkcja do obslugi gry gracz vs gracz
 ship* initship(int type);
-void delship(ship* statek);
+void delship(ship** statek);
 board* init_ai_ships();
 int random_ai_ships(int tab[10][10], int typeindex, int randomized[10]);
 int islegal(int x, int y, int tab[10][10], int type);

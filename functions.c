@@ -535,6 +535,11 @@ GameData GameSet()
     printboard(playerBoard);
 
     // Unload textures
+    /*
+        Podobno tego nie można robić, bo WindowClose(), działa jak Garbage Collector i zwalnia
+        pamięć na textury, fonty i shadery. Wykomentowałem to na próbę, działało normalnie, ale
+        dalej były segfaulty. Jednakże zostawiam niewykomentowane, bo boję się, że coś popsuję.
+    */
     for (int i = 0; i < 4; i++) 
     {
         UnloadTexture(ship1Textures[i]);
@@ -577,13 +582,18 @@ ship* initship(int type)
 	return statek;
 }
 
-void delship(ship* statek)
+void delship(ship** statek)
 {
-	if(statek==NULL) return;
-	if(statek ->boardplace != NULL){
-		free(statek->boardplace);
+	if(*statek==NULL){
+        return;
+    }
+	if((*statek) -> boardplace != NULL){
+		free((*statek)->boardplace);
 	}
-	free(statek);
+    (*statek)->boardplace =  NULL;
+    if(*statek==NULL) return;
+	free(*statek);
+    *statek = NULL;
 }
 
 board* initboard()
@@ -604,8 +614,27 @@ board* initboard()
 }
 
 void delboard(board* boardtab)
+/*
+    Wszystko robię jak najsumienniej, ale głupi język c dalej robi double free
+*/
 {
-	if(boardtab!=NULL){free(boardtab);}//nie zwolnie statkow gdyz musialbym sledzic czy dany statek nie zostal zwolniony wczesniej. Normalnie to od tego bylyby smart pointery ale jako ze to c to bedzie to problem osoby inicjujacej statek
+    if(boardtab == NULL || boardtab -> BOARD == NULL){
+        return;
+    }
+    for(int i = 0; i < 10; i++){
+        for(int j = 0; j < 10; j++){
+            if((boardtab->BOARD)[i][j] != NULL){
+                printf("%i %i ", i, j);
+                //int type = ((boardtab->BOARD)[i][j]) -> type;
+                delship(&((boardtab->BOARD)[i][j]));
+                (boardtab->BOARD)[i][j] = NULL;
+                //j+=type;
+            }
+        }
+    }
+    free(boardtab);
+    boardtab = NULL;
+	//if(boardtab!=NULL){free(boardtab);}//nie zwolnie statkow gdyz musialbym sledzic czy dany statek nie zostal zwolniony wczesniej. Normalnie to od tego bylyby smart pointery ale jako ze to c to bedzie to problem osoby inicjujacej statek
 }
 
 bool isLegal(board* player,pair tile)
@@ -861,22 +890,22 @@ array_cordinals* Get_array_cordinals(int offsetX, int offsetY) {
 
 void ResetGame(board **playerBoard, board **enemyBoard, ship **playerShip, ship **enemyShip) //basicowa funkcja resetujaca gre (pozniej trzeba wyrzucic stad playership i enemyship, zeby samo usuwalo - nikt nie bedzie tego recznie ustawial)
 {
-    delboard(*playerBoard);
-    delboard(*enemyBoard);
-    delship(*playerShip);
-    delship(*enemyShip);
+    //delboard(*playerBoard);
+    //delboard(*enemyBoard);
+    //delship(*playerShip);
+    //delship(*enemyShip);
 
-    *playerBoard = initboard();
-    *enemyBoard = initboard();
+    *playerBoard = init_ai_ships();//w następnej rundzie wszystko niech będzie ustawione losowo
+    *enemyBoard = init_ai_ships();
 	/*reczne dodawanie statkow, pozniej tego nie bedzie, bo zacznie sie funkcja z ustawianiem przez uzytkownika*/
-    *playerShip = initship(3);
-    *enemyShip = initship(3);
-
+    *playerShip = NULL;
+    *enemyShip = NULL;
+/*
     pair playerStart = {2, 2};
     pair enemyStart = {4, 4};
 
     placeStatek(*playerBoard, *playerShip, playerStart, 2);
-    placeStatek(*enemyBoard, *enemyShip, enemyStart, 3);
+    placeStatek(*enemyBoard, *enemyShip, enemyStart, 3);*/
 };
 
 void DrawBoard(board *playerBoard, int offsetX, int offsetY, bool isEnemy) {
