@@ -1453,27 +1453,48 @@ void UpdateSlider(struct slider* s){
 
 GameState PreGame() 
 {
+    Texture2D titleTexture = LoadTexture("Napisy/tytul.png");
+    Texture2D onePlayerTexture = LoadTexture("Napisy/jedengracz.png");
+    Texture2D twoPlayersTexture = LoadTexture("Napisy/dwochgraczy.png");
+    Texture2D backgroundTexture = LoadTexture("Napisy/tło.png");
+    Texture2D buttonTexture = LoadTexture("Napisy/przycisk.png");
+
     while (!WindowShouldClose()) 
     {
         BeginDrawing();
-        ClearBackground(RAYWHITE);
+        DrawTexture(backgroundTexture, -20, -20, WHITE);
 
-        // Rysowanie ekranu startowego
-        DrawText("Witaj w Statki The Game!", SCREENWIDTH / 2 - MeasureText("Witaj w Statki The Game!", 40) / 2, SCREENHEIGHT / 2 - 80, 40, DARKBLUE);
-        
-        // Wymiary i pozycje przycisków
-        int buttonWidth = 200;
-        int buttonHeight = 50;
-        int buttonYSpacing = 10;
+        // Skalowanie i rysowanie tytułu gry
+        float titleScale = 1.5f; // Skala tytułu
+        int titlePosX = SCREENWIDTH / 2 - (titleTexture.width * titleScale) / 2;
+        int titlePosY = SCREENHEIGHT / 2 - 280; 
+        DrawTextureEx(titleTexture, (Vector2){titlePosX, titlePosY+30}, 0.0f, titleScale, WHITE);
+    
+        int buttonSpacing = 50;
+        int buttonWidth = 300;  // Docelowa szerokość przycisków
+        int buttonHeight = 100; // Docelowa wysokość przycisków
+        float buttonScaleX = (float)buttonWidth / buttonTexture.width;
+        float buttonScaleY = (float)buttonHeight / buttonTexture.height;
 
-        Rectangle buttonOnePlayer = { SCREENWIDTH / 2 - buttonWidth / 2, SCREENHEIGHT / 2 - buttonHeight / 2, buttonWidth, buttonHeight };
-        Rectangle buttonTwoPlayers = { SCREENWIDTH / 2 - buttonWidth / 2, SCREENHEIGHT / 2 - buttonHeight / 2 + buttonHeight + buttonYSpacing, buttonWidth, buttonHeight };
+        Rectangle buttonOnePlayer = { SCREENWIDTH / 2 - buttonWidth / 2, SCREENHEIGHT / 2 - buttonHeight / 2, buttonWidth, buttonHeight+43};
+        Rectangle buttonTwoPlayers = { SCREENWIDTH / 2 - buttonWidth / 2, SCREENHEIGHT / 2 - buttonHeight / 2 + buttonHeight + buttonSpacing , buttonWidth, buttonHeight+43};
 
-        // Rysowanie przycisków
-        DrawRectangleRec(buttonOnePlayer, LIGHTGRAY);
-        DrawRectangleRec(buttonTwoPlayers, LIGHTGRAY);
-        DrawText("Jeden gracz", buttonOnePlayer.x + buttonWidth / 2 - MeasureText("Jeden gracz", 20) / 2, buttonOnePlayer.y + buttonHeight / 2 - 10, 20, BLACK);
-        DrawText("Dwóch graczy", buttonTwoPlayers.x + buttonWidth / 2 - MeasureText("Dwóch graczy", 20) / 2, buttonTwoPlayers.y + buttonHeight / 2 - 10, 20, BLACK);
+        // Rysowanie tekstur przycisków
+        DrawTextureEx(buttonTexture, (Vector2){buttonOnePlayer.x, buttonOnePlayer.y}, 0.0f, buttonScaleX, WHITE);
+        DrawTextureEx(buttonTexture, (Vector2){buttonTwoPlayers.x, buttonTwoPlayers.y}, 0.0f, buttonScaleX, WHITE);
+
+        // Rysowanie obrazów wewnątrz przycisków
+        float onePlayerImageScale = fminf((float)buttonWidth / onePlayerTexture.width - 0.15, (float)buttonHeight / onePlayerTexture.height);
+        float twoPlayersImageScale = fminf((float)buttonWidth / twoPlayersTexture.width - 0.15, (float)buttonHeight / twoPlayersTexture.height);
+
+        int onePlayerImageX = buttonOnePlayer.x + (buttonWidth - onePlayerTexture.width * onePlayerImageScale) / 2;
+        int onePlayerImageY = buttonOnePlayer.y + (buttonHeight - onePlayerTexture.height * onePlayerImageScale) / 2;
+        int twoPlayersImageX = buttonTwoPlayers.x + (buttonWidth - twoPlayersTexture.width * twoPlayersImageScale) / 2;
+        int twoPlayersImageY = buttonTwoPlayers.y + (buttonHeight - twoPlayersTexture.height * twoPlayersImageScale) / 2;
+
+        DrawTextureEx(onePlayerTexture, (Vector2){onePlayerImageX, onePlayerImageY+20}, 0.0f, onePlayerImageScale, WHITE);
+        DrawTextureEx(twoPlayersTexture, (Vector2){twoPlayersImageX, twoPlayersImageY+20}, 0.0f, twoPlayersImageScale, WHITE);
+
 
         // Wykrywanie kliknięcia myszką
         Vector2 mousePoint = GetMousePosition();
@@ -1489,15 +1510,20 @@ GameState PreGame()
 
         // Zmiana koloru przycisku po najechaniu myszką
         if (CheckCollisionPointRec(mousePoint, buttonOnePlayer)) {
-            DrawRectangleRec(buttonOnePlayer, GRAY);
-            DrawText("Jeden gracz", buttonOnePlayer.x + buttonWidth / 2 - MeasureText("Jeden gracz", 20) / 2, buttonOnePlayer.y + buttonHeight / 2 - 10, 20, BLACK);
+            DrawRectangleLinesEx(buttonOnePlayer, 2, DARKBLUE);
         }
         if (CheckCollisionPointRec(mousePoint, buttonTwoPlayers)) {
-            DrawRectangleRec(buttonTwoPlayers, GRAY);
-            DrawText("Dwóch graczy", buttonTwoPlayers.x + buttonWidth / 2 - MeasureText("Dwóch graczy", 20) / 2, buttonTwoPlayers.y + buttonHeight / 2 - 10, 20, BLACK);
+            DrawRectangleLinesEx(buttonTwoPlayers, 2, DARKBLUE);
         }
 
         EndDrawing();
     }
+
+    // Zwolnienie tekstur
+    UnloadTexture(titleTexture);
+    UnloadTexture(onePlayerTexture);
+    UnloadTexture(twoPlayersTexture);
+    UnloadTexture(backgroundTexture);
+    UnloadTexture(buttonTexture);
     return GAME_RUNNING; // Default state if the window is closed
 }
