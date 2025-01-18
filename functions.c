@@ -342,9 +342,15 @@ GameData GameSet()
     shipIndex++;
 
     bool isDragging = false;
-
+    Music pirent = LoadMusicStream("music/Pirates-entertaiment.ogg");
+    pirent.looping = true;
+    Music calm = LoadMusicStream("music/The_calm_before_the_storm.ogg");
+    calm.looping - true;
+    //Music sos = LoadMusicStream("music/SOS_Signal.ogg");
+    PlayMusicStream(pirent);
     while (!WindowShouldClose())
     {
+        //UpdateMusicStream(pirent);
         // Update ships
         for (int i = 0; i < MAX_SHIPS; i++)
         {
@@ -390,7 +396,9 @@ GameData GameSet()
         ClearBackground(RAYWHITE);
 
         if (game_phase == 0) {
+            UpdateMusicStream(pirent);
             // Rysowanie ekranu startowego
+            PlayMusicStream(pirent);
             DrawText("Witaj w Statki The Game!", SCREENWIDTH / 2 - MeasureText("Witaj w Statki The Game!", 40) / 2, SCREENHEIGHT / 2 - 80, 40, DARKBLUE);
     
             // Wymiary i pozycje przycisków
@@ -412,8 +420,10 @@ GameData GameSet()
 
             if (CheckCollisionPointRec(mousePoint, buttonOnePlayer) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 game_phase = 1; // Tryb jednego gracza
+                StopMusicStream(pirent);
             } 
             else if (CheckCollisionPointRec(mousePoint, buttonTwoPlayers) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                StopMusicStream(pirent);
                 game_phase = 2; // Tryb dwóch graczy
             }
 
@@ -427,6 +437,8 @@ GameData GameSet()
         }
         if (game_phase > 0) 
         {
+            UpdateMusicStream(calm);
+            PlayMusicStream(calm);
             DrawLine(SCREENWIDTH / 2, 0, SCREENWIDTH / 2, SCREENHEIGHT, BLACK); // Pionowa linia
 
             Rectangle StartBattleButton = {SCREENWIDTH - 260, SCREENHEIGHT - 100, 220, 50};
@@ -558,6 +570,7 @@ GameData GameSet()
     }
 
     GameData gameData = {playerBoard, playerShips, MAX_SHIPS};
+    StopMusicStream(calm);
     return gameData;
 }
 
@@ -1115,6 +1128,8 @@ board* init_ai_ships(){
 }
 
 void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *enemyShip) {
+    Music sos = LoadMusicStream("music/SOS_Signal.ogg");
+    sos.looping = true;
     int playerOffsetX = (SCREENWIDTH * 1/3)-20 - (BOARD_SIZE * TILE_SIZE) / 2;
     int playerOffsetY = (SCREENHEIGHT - (BOARD_SIZE * TILE_SIZE)) / 2;
     int enemyOffsetX = (SCREENWIDTH * 2/3)+20 - (BOARD_SIZE * TILE_SIZE) / 2;
@@ -1145,6 +1160,8 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
     }
 
     while (!WindowShouldClose()) {
+        PlayMusicStream(sos);
+        UpdateMusicStream(sos);
         BeginDrawing();
 
         if (IsKeyPressed(KEY_ESCAPE)) {
@@ -1271,11 +1288,13 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
 
         EndDrawing();
     }
-
+    StopMusicStream(sos);
     CloseWindow();
 }
 
 void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, ship *player2Ship) {
+    Music sos = LoadMusicStream("music/SOS_Signal.ogg");
+    sos.looping = true;
     int player1OffsetX = (SCREENWIDTH * 1/3)-20 - (BOARD_SIZE * TILE_SIZE) / 2;
     int player1OffsetY = (SCREENHEIGHT - (BOARD_SIZE * TILE_SIZE)) / 2;
     int player2OffsetX = (SCREENWIDTH * 2/3)+20 - (BOARD_SIZE * TILE_SIZE) / 2;
@@ -1306,6 +1325,8 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
     }
 
     while (!WindowShouldClose()) {
+        PlayMusicStream(sos);
+        UpdateMusicStream(sos);
         BeginDrawing();
         ClearBackground(RAYWHITE);
 
@@ -1454,6 +1475,7 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
 
         EndDrawing();
     }
+    StopMusicStream(sos);
     CloseWindow();
 }
 
