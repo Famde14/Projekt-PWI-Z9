@@ -18,6 +18,7 @@ void shoot(board* player,pair pairA);//wymaga poprawnie zainicjowanego statku ze
 void printboard(board* boardtab);//funkcja rysuje tablice danego gracza. Na razie drukuje tylko tile'a (funkcja potencjalnie do wymiany)
 struct array_cordinals* Get_array_cordinals(int offsetX, int offsetY);//przekształca położenie myszki na położenie statku na planszy
 /*gameplay*/
+GameState PreGame(); //funkcja do obslugi menu przed rozpoczeciem gry
 void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *enemyShip); //funkcja do obslugi gry (inicjuje okienko oraz dodany jest jakis biedny postgame)
 /*ustawienie*/
 void UpdateSlider(struct slider* s); //aktualizuje suwak służący do ustawiania np. głośności

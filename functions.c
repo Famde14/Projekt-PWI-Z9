@@ -215,9 +215,8 @@ void PrintShipPositions(ship *s)
 	}
 }
 
-GameData GameSet()
+GameData GameSet( GameState gameState )
 {
-    int game_phase = 0;
     int gridSize = 10; // Rozmiar planszy
     // int TILE_SIZE = 50; // Rozmiar pojedynczej kratki (w pikselach)
 
@@ -342,16 +341,14 @@ GameData GameSet()
     shipIndex++;
 
     bool isDragging = false;
-    Music pirent = LoadMusicStream("music/Pirates-entertaiment.ogg");
-    pirent.looping = true;
+
     Music calm = LoadMusicStream("music/The_calm_before_the_storm.ogg");
     calm.looping - true;
     //Music sos = LoadMusicStream("music/SOS_Signal.ogg");
-    PlayMusicStream(pirent);
+    PlayMusicStream(calm);
     while (!WindowShouldClose())
     {
-        //UpdateMusicStream(pirent);
-        // Update ships
+        UpdateMusicStream(calm);
         for (int i = 0; i < MAX_SHIPS; i++)
         {
             playerShips[i].updateShip(&isDragging, &playerShips[i]);
@@ -394,140 +391,86 @@ GameData GameSet()
         BeginDrawing();
 
         ClearBackground(RAYWHITE);
+        DrawLine(SCREENWIDTH / 2, 0, SCREENWIDTH / 2, SCREENHEIGHT, BLACK); // Pionowa linia
 
-        if (game_phase == 0) {
-            UpdateMusicStream(pirent);
-            // Rysowanie ekranu startowego
-            PlayMusicStream(pirent);
-            DrawText("Witaj w Statki The Game!", SCREENWIDTH / 2 - MeasureText("Witaj w Statki The Game!", 40) / 2, SCREENHEIGHT / 2 - 80, 40, DARKBLUE);
-    
-            // Wymiary i pozycje przycisków
-            int buttonWidth = 200;
-            int buttonHeight = 50;
-            int buttonYSpacing = 10;
-
-            Rectangle buttonOnePlayer = { SCREENWIDTH / 2 - buttonWidth / 2, SCREENHEIGHT / 2 - buttonHeight / 2, buttonWidth, buttonHeight };
-            Rectangle buttonTwoPlayers = { SCREENWIDTH / 2 - buttonWidth / 2, SCREENHEIGHT / 2 - buttonHeight / 2 + buttonHeight + buttonYSpacing, buttonWidth, buttonHeight };
-
-            // Rysowanie przycisków
-            DrawRectangleRec(buttonOnePlayer, LIGHTGRAY);
-            DrawRectangleRec(buttonTwoPlayers, LIGHTGRAY);
-            DrawText("Jeden gracz", buttonOnePlayer.x + buttonWidth / 2 - MeasureText("Jeden gracz", 20) / 2, buttonOnePlayer.y + buttonHeight / 2 - 10, 20, BLACK);
-            DrawText("Dwóch graczy", buttonTwoPlayers.x + buttonWidth / 2 - MeasureText("Dwóch graczy", 20) / 2, buttonTwoPlayers.y + buttonHeight / 2 - 10, 20, BLACK);
-
-            // Wykrywanie kliknięcia myszką
-            Vector2 mousePoint = GetMousePosition();
-
-            if (CheckCollisionPointRec(mousePoint, buttonOnePlayer) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-                game_phase = 1; // Tryb jednego gracza
-                StopMusicStream(pirent);
-            } 
-            else if (CheckCollisionPointRec(mousePoint, buttonTwoPlayers) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-                StopMusicStream(pirent);
-                game_phase = 2; // Tryb dwóch graczy
-            }
-
-            // Zmiana koloru przycisku po najechaniu myszką
-            if (CheckCollisionPointRec(mousePoint, buttonOnePlayer)) {
-                DrawRectangleLinesEx(buttonOnePlayer, 2, DARKBLUE);
-            } 
-            else if (CheckCollisionPointRec(mousePoint, buttonTwoPlayers)) {
-                DrawRectangleLinesEx(buttonTwoPlayers, 2, DARKBLUE);
-            }
-        }
-        if (game_phase > 0) 
-        {
-            UpdateMusicStream(calm);
-            PlayMusicStream(calm);
-            DrawLine(SCREENWIDTH / 2, 0, SCREENWIDTH / 2, SCREENHEIGHT, BLACK); // Pionowa linia
-
-            Rectangle StartBattleButton = {SCREENWIDTH - 260, SCREENHEIGHT - 100, 220, 50};
-            DrawRectangleRec(StartBattleButton, LIGHTGRAY);
-            DrawText("Zacznij bitwe!", StartBattleButton.x + 10, StartBattleButton.y + 10, 30, BLACK);
+        Rectangle StartBattleButton = {SCREENWIDTH - 260, SCREENHEIGHT - 100, 220, 50};
+        DrawRectangleRec(StartBattleButton, LIGHTGRAY);
+        DrawText("Zacznij bitwe!", StartBattleButton.x + 10, StartBattleButton.y + 10, 30, BLACK);
         
-            if (CheckCollisionPointRec(GetMousePosition(), StartBattleButton))
+        if (CheckCollisionPointRec(GetMousePosition(), StartBattleButton))
+        {
+            DrawRectangleLinesEx(StartBattleButton, 2, DARKBLUE);
+        }
+
+        if (CheckCollisionPointRec(GetMousePosition(), StartBattleButton) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+        {
+            bool allShipsPlaced = true;
+            for (int i = 0; i < MAX_SHIPS; i++)
             {
-                DrawRectangleLinesEx(StartBattleButton, 2, DARKBLUE);
-            }
-
-            if (CheckCollisionPointRec(GetMousePosition(), StartBattleButton) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
-            {
-                bool allShipsPlaced = true;
-                for (int i = 0; i < MAX_SHIPS; i++)
+                if (playerShips[i].invalidPlacement == true)
                 {
-                    if (playerShips[i].invalidPlacement == true)
-                    {
-                        // Jeśli którykolwiek statek jest źle ustawiony, to nie można rozpocząć bitwy. Wyświetlany jest komunikat o błędzie.
-                        allShipsPlaced = false;
-                        ClearBackground(RAYWHITE);
-                        BeginDrawing();
-                        DrawRectangle(SCREENWIDTH / 2, SCREENHEIGHT / 4, SCREENWIDTH / 2, SCREENHEIGHT / 2, RED);
-                        DrawText("Statki sa zle ustawione!", SCREENWIDTH / 2 + MeasureText("Statki sa zle ustawione!", 30) / 2, SCREENHEIGHT / 2 - 15, 30, WHITE);
-                        EndDrawing();
-                        usleep(1000000);
-                        break;
-                    }
-                }
-
-                if (allShipsPlaced)
-                {
-                    for (int alpha = 0; alpha <= 255; alpha += 5)
-                    {
-                        BeginDrawing();
-                        DrawRectangle(0, 0, SCREENWIDTH, SCREENHEIGHT, (Color){0, 0, 0, alpha});
-                        for (int i = 0; i < gridSize; i++)
-                        {
-                            char label[3]; // Increased size to accommodate two-digit numbers
-                          snprintf(label, sizeof(label), "%c", 'A' + i);
-                            DrawText(label, gridStartX + i * TILE_SIZE + TILE_SIZE / 2 - 5, gridStartY - 30, 20, BLACK);
-                            snprintf(label, sizeof(label), "%d", i + 1);
-                            DrawText(label, gridStartX - 30, gridStartY + i * TILE_SIZE + TILE_SIZE / 2 - 10, 20, BLACK);
-                        }
-
-                        for (int i = 0; i < gridSize; i++)
-                        {
-                            for (int j = 0; j < gridSize; j++)
-                            {
-                                DrawRectangleLines(gridStartX + j * TILE_SIZE, gridStartY + i * TILE_SIZE, TILE_SIZE, TILE_SIZE, BLACK);
-                            }
-                        }
-                        // Draw ships
-                        // for (int i = 0; i < MAX_SHIPS; i++) {
-                        //    DrawTexture(playerShips[i].texture, (int)playerShips[i].pos.x, (int)playerShips[i].pos.y, WHITE);
-                        //}
-                        EndDrawing();
-                        usleep(40000);
-                    }
+                    // Jeśli którykolwiek statek jest źle ustawiony, to nie można rozpocząć bitwy. Wyświetlany jest komunikat o błędzie.
+                    allShipsPlaced = false;
+                    ClearBackground(RAYWHITE);
+                    BeginDrawing();
+                    DrawRectangle(SCREENWIDTH / 2, SCREENHEIGHT / 4, SCREENWIDTH / 2, SCREENHEIGHT / 2, RED);
+                    DrawText("Statki sa zle ustawione!", SCREENWIDTH / 2 + MeasureText("Statki sa zle ustawione!", 30) / 2, SCREENHEIGHT / 2 - 15, 30, WHITE);
+                    EndDrawing();
+                    usleep(1000000);
                     break;
                 }
             }
-
-            for (int i = 0; i < gridSize; i++)
+            if (allShipsPlaced)
             {
-                char label[3]; // Increased size to accommodate two-digit numbers
-                snprintf(label, sizeof(label), "%c", 'A' + i);
-                DrawText(label, gridStartX + i * TILE_SIZE + TILE_SIZE / 2 - 5, gridStartY - 30, 20, BLACK);
-                snprintf(label, sizeof(label), "%d", i + 1);
-               DrawText(label, gridStartX - 30, gridStartY + i * TILE_SIZE + TILE_SIZE / 2 - 10, 20, BLACK);
-            }
-
-            for (int i = 0; i < gridSize; i++)
-            {
-                for (int j = 0; j < gridSize; j++)
+                for (int alpha = 0; alpha <= 255; alpha += 5)
                 {
-                    DrawRectangleLines(gridStartX + j * TILE_SIZE, gridStartY + i * TILE_SIZE, TILE_SIZE, TILE_SIZE, BLACK);
+                    BeginDrawing();
+                    DrawRectangle(0, 0, SCREENWIDTH, SCREENHEIGHT, (Color){0, 0, 0, alpha});
+                    for (int i = 0; i < gridSize; i++)
+                    {
+                        char label[3]; // Increased size to accommodate two-digit numbers
+                        snprintf(label, sizeof(label), "%c", 'A' + i);
+                        DrawText(label, gridStartX + i * TILE_SIZE + TILE_SIZE / 2 - 5, gridStartY - 30, 20, BLACK);
+                        snprintf(label, sizeof(label), "%d", i + 1);
+                        DrawText(label, gridStartX - 30, gridStartY + i * TILE_SIZE + TILE_SIZE / 2 - 10, 20, BLACK);
+                    }
+                    for (int i = 0; i < gridSize; i++)
+                    {
+                        for (int j = 0; j < gridSize; j++)
+                        {
+                            DrawRectangleLines(gridStartX + j * TILE_SIZE, gridStartY + i * TILE_SIZE, TILE_SIZE, TILE_SIZE, BLACK);
+                        }
+                    }
+                    EndDrawing();
+                    usleep(40000);
                 }
-            }
-            // Draw ships
-            for (int i = 0; i < MAX_SHIPS; i++)
-            {
-                if (playerShips[i].invalidPlacement)
-                    DrawTexture(playerShips[i].texture, (int)playerShips[i].pos.x, (int)playerShips[i].pos.y, RED); // Czerwony tint dla nieprawidłowo ustawionych statków
-                else
-                    DrawTexture(playerShips[i].texture, (int)playerShips[i].pos.x, (int)playerShips[i].pos.y, WHITE); // Normalny tint dla statków ustawionych prawidłowo
+                break;
             }
         }
-        EndDrawing();
+        for (int i = 0; i < gridSize; i++)
+        {
+            char label[3]; // Increased size to accommodate two-digit numbers
+            snprintf(label, sizeof(label), "%c", 'A' + i);
+            DrawText(label, gridStartX + i * TILE_SIZE + TILE_SIZE / 2 - 5, gridStartY - 30, 20, BLACK);
+            snprintf(label, sizeof(label), "%d", i + 1);
+            DrawText(label, gridStartX - 30, gridStartY + i * TILE_SIZE + TILE_SIZE / 2 - 10, 20, BLACK);
+        }
+        for (int i = 0; i < gridSize; i++)
+        {
+            for (int j = 0; j < gridSize; j++)
+            {
+                DrawRectangleLines(gridStartX + j * TILE_SIZE, gridStartY + i * TILE_SIZE, TILE_SIZE, TILE_SIZE, BLACK);
+            }
+        }
+        // Draw ships
+        for (int i = 0; i < MAX_SHIPS; i++)
+        {
+            if (playerShips[i].invalidPlacement)
+                DrawTexture(playerShips[i].texture, (int)playerShips[i].pos.x, (int)playerShips[i].pos.y, RED); // Czerwony tint dla nieprawidłowo ustawionych statków
+            else
+                DrawTexture(playerShips[i].texture, (int)playerShips[i].pos.x, (int)playerShips[i].pos.y, WHITE); // Normalny tint dla statków ustawionych prawidłowo
+        }
+    EndDrawing();
     }
 
     // Układanie statków na w zmiennej playerBoard
@@ -1130,6 +1073,7 @@ board* init_ai_ships(){
 void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *enemyShip) {
     Music sos = LoadMusicStream("music/SOS_Signal.ogg");
     sos.looping = true;
+    PlayMusicStream(sos);
     int playerOffsetX = (SCREENWIDTH * 1/3)-20 - (BOARD_SIZE * TILE_SIZE) / 2;
     int playerOffsetY = (SCREENHEIGHT - (BOARD_SIZE * TILE_SIZE)) / 2;
     int enemyOffsetX = (SCREENWIDTH * 2/3)+20 - (BOARD_SIZE * TILE_SIZE) / 2;
@@ -1160,7 +1104,6 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
     }
 
     while (!WindowShouldClose()) {
-        PlayMusicStream(sos);
         UpdateMusicStream(sos);
         BeginDrawing();
 
@@ -1523,4 +1466,92 @@ void UpdateSlider(struct slider* s){
 		DrawText(s->valText, (int)(s->right + s->hand_texture.width / 2), (int)(s->y_pos), s->hitbox.height, BLACK);
 
 	}
+}
+
+GameState PreGame() 
+{
+    Music pirent = LoadMusicStream("music/Pirates-entertaiment.ogg");
+    pirent.looping = true;
+    PlayMusicStream(pirent);
+
+    Texture2D titleTexture = LoadTexture("Napisy/tytul.png");
+    Texture2D onePlayerTexture = LoadTexture("Napisy/jedengracz.png");
+    Texture2D twoPlayersTexture = LoadTexture("Napisy/dwochgraczy.png");
+    Texture2D backgroundTexture = LoadTexture("Napisy/tło.png");
+    Texture2D buttonTexture = LoadTexture("Napisy/przycisk.png");
+
+    while (!WindowShouldClose()) 
+    {
+        UpdateMusicStream(pirent);
+        BeginDrawing();
+
+
+
+        DrawTexture(backgroundTexture, -20, -20, WHITE);
+
+        // Skalowanie i rysowanie tytułu gry
+        float titleScale = 1.5f; // Skala tytułu
+        int titlePosX = SCREENWIDTH / 2 - (titleTexture.width * titleScale) / 2;
+        int titlePosY = SCREENHEIGHT / 2 - 280; 
+        DrawTextureEx(titleTexture, (Vector2){titlePosX, titlePosY+30}, 0.0f, titleScale, WHITE);
+    
+        int buttonSpacing = 50;
+        int buttonWidth = 300;  // Docelowa szerokość przycisków
+        int buttonHeight = 100; // Docelowa wysokość przycisków
+        float buttonScaleX = (float)buttonWidth / buttonTexture.width;
+        float buttonScaleY = (float)buttonHeight / buttonTexture.height;
+
+        Rectangle buttonOnePlayer = { SCREENWIDTH / 2 - buttonWidth / 2, SCREENHEIGHT / 2 - buttonHeight / 2, buttonWidth, buttonHeight+43};
+        Rectangle buttonTwoPlayers = { SCREENWIDTH / 2 - buttonWidth / 2, SCREENHEIGHT / 2 - buttonHeight / 2 + buttonHeight + buttonSpacing , buttonWidth, buttonHeight+43};
+
+        // Rysowanie tekstur przycisków
+        DrawTextureEx(buttonTexture, (Vector2){buttonOnePlayer.x, buttonOnePlayer.y}, 0.0f, buttonScaleX, WHITE);
+        DrawTextureEx(buttonTexture, (Vector2){buttonTwoPlayers.x, buttonTwoPlayers.y}, 0.0f, buttonScaleX, WHITE);
+
+        // Rysowanie obrazów wewnątrz przycisków
+        float onePlayerImageScale = fminf((float)buttonWidth / onePlayerTexture.width - 0.15, (float)buttonHeight / onePlayerTexture.height);
+        float twoPlayersImageScale = fminf((float)buttonWidth / twoPlayersTexture.width - 0.15, (float)buttonHeight / twoPlayersTexture.height);
+
+        int onePlayerImageX = buttonOnePlayer.x + (buttonWidth - onePlayerTexture.width * onePlayerImageScale) / 2;
+        int onePlayerImageY = buttonOnePlayer.y + (buttonHeight - onePlayerTexture.height * onePlayerImageScale) / 2;
+        int twoPlayersImageX = buttonTwoPlayers.x + (buttonWidth - twoPlayersTexture.width * twoPlayersImageScale) / 2;
+        int twoPlayersImageY = buttonTwoPlayers.y + (buttonHeight - twoPlayersTexture.height * twoPlayersImageScale) / 2;
+
+        DrawTextureEx(onePlayerTexture, (Vector2){onePlayerImageX, onePlayerImageY+20}, 0.0f, onePlayerImageScale, WHITE);
+        DrawTextureEx(twoPlayersTexture, (Vector2){twoPlayersImageX, twoPlayersImageY+20}, 0.0f, twoPlayersImageScale, WHITE);
+
+
+        // Wykrywanie kliknięcia myszką
+        Vector2 mousePoint = GetMousePosition();
+
+        if (CheckCollisionPointRec(mousePoint, buttonOnePlayer) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            EndDrawing();
+            StopMusicStream(pirent);
+            return GAME_PREPARE1;
+        } 
+        else if (CheckCollisionPointRec(mousePoint, buttonTwoPlayers) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            EndDrawing();
+            StopMusicStream(pirent);
+            return GAME_PREPARE2;
+        }
+
+        // Zmiana koloru przycisku po najechaniu myszką
+        if (CheckCollisionPointRec(mousePoint, buttonOnePlayer)) {
+            DrawRectangleLinesEx(buttonOnePlayer, 2, DARKBLUE);
+        }
+        if (CheckCollisionPointRec(mousePoint, buttonTwoPlayers)) {
+            DrawRectangleLinesEx(buttonTwoPlayers, 2, DARKBLUE);
+        }
+
+        EndDrawing();
+    }
+
+    // Zwolnienie tekstur
+    UnloadTexture(titleTexture);
+    UnloadTexture(onePlayerTexture);
+    UnloadTexture(twoPlayersTexture);
+    UnloadTexture(backgroundTexture);
+    UnloadTexture(buttonTexture);
+    StopMusicStream(pirent);
+    return GAME_RUNNING; // Default state if the window is closed
 }

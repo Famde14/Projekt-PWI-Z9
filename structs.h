@@ -10,6 +10,9 @@
 #define SCREENHEIGHT 720
 
 typedef enum { //struct przechowujący stan gry
+    GAME_START,
+    GAME_PREPARE1,
+    GAME_PREPARE2,
     GAME_RUNNING,
     GAME_PLAYER1_WON,
 	GAME_PLAYER2_WON,
@@ -58,9 +61,6 @@ typedef struct {
     board* playerBoard;
     ship* playerShips;
     int playerShipCount;
-	board* enemyBoard;
-    ship* enemyShips;
-    int enemyShipCount;
 } GameData;
 
 struct slider{
