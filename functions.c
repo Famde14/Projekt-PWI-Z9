@@ -221,10 +221,10 @@ GameData GameSet( GameState gameState )
     // int TILE_SIZE = 50; // Rozmiar pojedynczej kratki (w pikselach)
 
     // załadowanie tekstur statków
-    const char *ship1Files[] = {"textures/ship1.png", "textures/ship1.png", "textures/ship1.png", "textures/ship1.png"};
-    const char *ship2Files[] = {"textures/ship2.png", "textures/ship2.png", "textures/ship2.png"};
-    const char *ship3Files[] = {"textures/ship3.png", "textures/ship3.png"};
-    const char *ship4Files[] = {"textures/ship4.png"};
+    const char *ship1Files[] = {"textures/1x1.png", "textures/1x1.png", "textures/1x1.png", "textures/1x1.png"};
+    const char *ship2Files[] = {"textures/2x1.png", "textures/2x1.png", "textures/2x1.png"};
+    const char *ship3Files[] = {"textures/3x1.png", "textures/3x1.png"};
+    const char *ship4Files[] = {"textures/4x1.png"};
 
     Image ship1Images[4];
     Texture2D ship1Textures[4];
@@ -325,7 +325,6 @@ GameData GameSet( GameState gameState )
             .boardplace = malloc(3 * sizeof(shiptile))};
         shipIndex++;
     }
-    int spacing = TILE_SIZE * 4 + TILE_SIZE;
     playerShips[shipIndex] = (ship){
         .pos = {startX, startY + TILE_SIZE * 6},
         .sprite = ship4Images[0],
@@ -343,7 +342,7 @@ GameData GameSet( GameState gameState )
     bool isDragging = false;
 
     Music calm = LoadMusicStream("music/The_calm_before_the_storm.ogg");
-    calm.looping - true;
+    calm.looping = true;
 
     PlayMusicStream(calm);
     while (1)
@@ -586,7 +585,7 @@ ship* initship(int type)
 	{
 		statek->boardplace[i].got_shot=0;
 	}
-   statek->kierunek=0;
+    statek->kierunek=0;
 	statek->type = type;
 	return statek;
 }
@@ -711,7 +710,7 @@ void placeStatek(board *boardtab, ship *curr_ship, pair begin, int direction) //
 		}
 		for (int i = 0; i < (int)(curr_ship->type); i++)
 		{
-			shiptile temp = {begin.x, (begin.y + i)};
+			shiptile temp = {{begin.x, (begin.y + i)},0};
 			boardtab->BOARD[(unsigned int)begin.x][(unsigned int)begin.y + i] = curr_ship;
 			curr_ship->boardplace[i] = temp;
 		}
@@ -733,7 +732,7 @@ void placeStatek(board *boardtab, ship *curr_ship, pair begin, int direction) //
 		}
 		for (int i = 0; i < (int)(curr_ship->type); i++)
 		{
-			shiptile temp = {begin.x + i, (begin.y)};
+			shiptile temp = {{begin.x + i, (begin.y)},0};
 			boardtab->BOARD[(unsigned int)begin.x + i][(unsigned int)begin.y] = curr_ship;
 			curr_ship->boardplace[i] = temp;
 		}
@@ -893,35 +892,95 @@ void ResetGame(board **playerBoard, board **enemyBoard, ship **playerShip, ship 
     placeStatek(*enemyBoard, *enemyShip, enemyStart, 3);*/
 };
 
-void DrawBoard(board *playerBoard, int offsetX, int offsetY, bool isEnemy) {
-    for (int y = 0; y < BOARD_SIZE; y++) {
-        for (int x = 0; x < BOARD_SIZE; x++) {
-            Rectangle tile = {offsetX + x * TILE_SIZE, offsetY + y * TILE_SIZE, TILE_SIZE, TILE_SIZE};
+void DrawBoard(board *playerBoard, int offsetX, int offsetY, bool isEnemy) //funkcja rysujaca plansze
+{
+    static bool texturesLoaded = false;
+    static Texture2D shipTextures[4];
+    static Texture2D ship_brokenTextures[4];
+    static Texture2D XTexture;
 
-            if (playerBoard->BOARD[x][y] == NULL) {
-                if (playerBoard->shots[x][y]) {
+    if (!texturesLoaded) { //ładowanie tekstur (tak żeby się nie powtarzało bez sensu)
+        // Load "X" texture
+        Image X = LoadImage("textures/X.png");
+        XTexture = LoadTextureFromImage(X);
+        UnloadImage(X); // Zwolnij obraz po załadowaniu tekstury
+
+        // Load ship textures
+        Image shipImages[4];
+        Image ship_brokenImages[4];
+
+        shipImages[0] = LoadImage("textures/1x1.png");
+        shipTextures[0] = LoadTextureFromImage(shipImages[0]);
+        ship_brokenImages[0] = LoadImage("textures/1x1_zepsuta.png");
+        ship_brokenTextures[0] = LoadTextureFromImage(ship_brokenImages[0]);
+
+        shipImages[1] = LoadImage("textures/2x1.png");
+        shipTextures[1] = LoadTextureFromImage(shipImages[1]);
+        ship_brokenImages[1] = LoadImage("textures/2x1_zepsuta.png");
+        ship_brokenTextures[1] = LoadTextureFromImage(ship_brokenImages[1]);
+
+        shipImages[2] = LoadImage("textures/3x1.png");
+        shipTextures[2] = LoadTextureFromImage(shipImages[2]);
+        ship_brokenImages[2] = LoadImage("textures/3x1_zepsuta.png");
+        ship_brokenTextures[2] = LoadTextureFromImage(ship_brokenImages[2]);
+
+        shipImages[3] = LoadImage("textures/4x1.png");
+        shipTextures[3] = LoadTextureFromImage(shipImages[3]);
+        ship_brokenImages[3] = LoadImage("textures/4x1_zepsuta.png");
+        ship_brokenTextures[3] = LoadTextureFromImage(ship_brokenImages[3]);
+
+        // Mark textures as loaded
+        texturesLoaded = true;
+    }
+
+    for (int y = 0; y < BOARD_SIZE; y++)
+    {
+        for (int x = 0; x < BOARD_SIZE; x++)
+        {
+            Rectangle tile = {offsetX + x * TILE_SIZE, offsetY + y * TILE_SIZE, TILE_SIZE, TILE_SIZE}; //deklaracja pola
+
+            if (playerBoard->BOARD[x][y] == NULL) //jeśli nie ma statku, to rysuj szare linie, pole puste
+            {
+                DrawRectangleLines(tile.x, tile.y, tile.width, tile.height, GRAY);
+                if (playerBoard->shots[x][y]) // Check if the tile has been shot
+                {
                     DrawRectangle(tile.x, tile.y, tile.width, tile.height, LIGHTGRAY); // Color for missed shots
                 }
-                DrawRectangleLines(tile.x, tile.y, tile.width, tile.height, GRAY);
+                
             }
-            else {
+            else 
+            {
+                DrawRectangleLines(tile.x, tile.y, tile.width, tile.height, GRAY); // Border lines
                 ship *currShip = playerBoard->BOARD[x][y];
-                bool partShot = false;
-                for (int i = 0; i < currShip->type; i++) {
-                    if (currShip->boardplace[i].cords.x == x && currShip->boardplace[i].cords.y == y && currShip->boardplace[i].got_shot) {
-                        partShot = true;
-                        break;
+                int shots = 0;
+                for (int i = 0; i < currShip->type; i++)
+                {
+                    if (currShip->boardplace[i].got_shot) 
+                    {
+                        shots++;
                     }
                 }
 
-                if (partShot) {
-                    DrawRectangle(tile.x, tile.y, tile.width, tile.height, RED);
+                if (shots == currShip->type) // Check if the ship is fully destroyed
+                {
+                    DrawTexture(ship_brokenTextures[currShip->type-1], offsetX + currShip->boardplace[0].cords.x * TILE_SIZE, offsetY + currShip->boardplace[0].cords.y * TILE_SIZE, WHITE);
                 }
-                else {
-                    Color color = (isEnemy) ? RAYWHITE : BLUE;
-                    DrawRectangle(tile.x, tile.y, tile.width, tile.height, color);
+                else
+                {
+                    if(!isEnemy)
+                    {
+                        DrawTexture(shipTextures[currShip->type-1], offsetX + currShip->boardplace[0].cords.x * TILE_SIZE, offsetY + currShip->boardplace[0].cords.y * TILE_SIZE, WHITE);
+                    }
+                    
+                    for (int i = 0; i < currShip->type; i++)
+                    {
+                        if (currShip->boardplace[i].got_shot) 
+                        {
+                        DrawTexture(XTexture, offsetX + currShip->boardplace[i].cords.x * TILE_SIZE, offsetY + currShip->boardplace[i].cords.y * TILE_SIZE, WHITE);
+                        }
+                    }
                 }
-                DrawRectangleLines(tile.x, tile.y, tile.width, tile.height, GRAY); // Border lines
+                
             }
         }
     }
@@ -1526,7 +1585,7 @@ GameState PreGame()
         int buttonWidth = 300;  // Docelowa szerokość przycisków
         int buttonHeight = 100; // Docelowa wysokość przycisków
         float buttonScaleX = (float)buttonWidth / buttonTexture.width;
-        float buttonScaleY = (float)buttonHeight / buttonTexture.height;
+        //float buttonScaleY = (float)buttonHeight / buttonTexture.height; unused variable /shrug
 
         Rectangle buttonOnePlayer = { SCREENWIDTH / 2 - buttonWidth / 2, SCREENHEIGHT / 2 - buttonHeight / 2, buttonWidth, buttonHeight+43};
         Rectangle buttonTwoPlayers = { SCREENWIDTH / 2 - buttonWidth / 2, SCREENHEIGHT / 2 - buttonHeight / 2 + buttonHeight + buttonSpacing , buttonWidth, buttonHeight+43};
