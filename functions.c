@@ -1264,7 +1264,7 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
     GameState gameState = GAME_RUNNING;
     char message[128] = "";
 
-    for (int alpha = 255; alpha >= 0; alpha-=5) {
+    for (int alpha = 255; alpha >= 0; alpha -= 5) {
         BeginDrawing();
         ClearBackground(RAYWHITE);
         DrawText("Twoja plansza", playerOffsetX, playerOffsetY - 30, 20, BLACK);
@@ -1281,11 +1281,7 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
         EndDrawing();
 
         // Add a small delay to make the transition visible
-        double startTime = GetTime();
-        while (GetTime() - startTime < 0.04) 
-        {
-            UpdateMusicStream(sos);
-        }
+        usleep(40000);
     }
 
     while (!WindowShouldClose()) {
@@ -1311,40 +1307,50 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
             if (playerTurn) {
                 if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                     struct array_cordinals *cords = Get_array_cordinals(enemyOffsetX, enemyOffsetY);
-                    if(cords==NULL) goto VALIDCLICK;//dobrze, że dr Paweł Laskoś-Grabowski tego nie sprawdza, cóż byłem do tego zmuszony
+                    if (cords == NULL) goto VALIDCLICK; //dobre obejście sytuacji braku kordu
                     int x = cords->x;
                     int y = cords->y;
-					free(cords);
+                    free(cords);
 
                     if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE) {
                         pair shot = {x, y};
                         if (!enemyBoard->shots[x][y]) //jeśli pole puste lub niezestrzelone, to strzelaj
                         {
                             shoot(enemyBoard, shot);
-                            playerTurn = false;
-                            snprintf(message, sizeof(message), "Gracz strzelil w (%d, %d)", x, y);
-                            if(enemyBoard->BOARD[x][y]!=NULL)
-                            {
+                            snprintf(message, sizeof(message), "Gracz strzelił w (%d, %d)", x, y);
+                            if (enemyBoard->BOARD[x][y] != NULL) {
                                 ship *currShip = enemyBoard->BOARD[x][y];
                                 bool sunk = true;
-                                for (int i = 0; i < currShip->type; i++)
-                                {
-                                    if (!currShip->boardplace[i].got_shot)
-                                    {
+                                for (int i = 0; i < currShip->type; i++) {
+                                    if (!currShip->boardplace[i].got_shot) {
                                         sunk = false;
                                         break;
                                     }
                                 }
-                                if (sunk)
-                                {
-                                    snprintf(message, sizeof(message), "Gracz zatopil statek!");
+                                if (sunk) {
+                                    snprintf(message, sizeof(message), "Gracz zatopił statek!");
                                 }
-                                playerTurn=true;
+                            } else {
+                                playerTurn = false; // Tylko jeśli gracz nie trafi, zmienia się tura
                             }
-                        } 
-                        else 
-                        {
-                            snprintf(message, sizeof(message), "Strzelales juz tutaj!");
+                            double startTime = GetTime();
+                            while (GetTime() - startTime < 1.0) {
+                                UpdateMusicStream(sos); // Utrzymuje działanie muzyki w tle
+                                BeginDrawing();
+                                ClearBackground(RAYWHITE);
+
+                                DrawText("Twoja plansza", playerOffsetX, playerOffsetY - 30, 20, BLACK);
+                                DrawBoard(playerBoard, playerOffsetX, playerOffsetY, false);
+
+                                DrawText("Plansza przeciwnika", enemyOffsetX, enemyOffsetY - 30, 20, BLACK);
+                                DrawBoard(enemyBoard, enemyOffsetX, enemyOffsetY, true);
+
+                                DrawText(message, SCREENWIDTH / 2 - MeasureText(message, 20) / 2, SCREENHEIGHT - 50, 20, DARKGRAY);
+
+                                EndDrawing();
+                            }
+                        } else {
+                            snprintf(message, sizeof(message), "Strzelałeś już tutaj!");
                         }
                     }
                 }
@@ -1355,25 +1361,43 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
                 int shotX = (int)shot.x;
                 int shotY = (int)shot.y;
 
-                if (shotX >= 0 && shotX < BOARD_SIZE && shotY >= 0 && shotY < BOARD_SIZE && playerBoard->BOARD[shotX][shotY] != NULL) {
-                    ship *currShip = playerBoard->BOARD[shotX][shotY];
-                    bool sunk = true;
-                    for (int i = 0; i < currShip->type; i++) {
-                        if (!currShip->boardplace[i].got_shot) {
-                            sunk = false;
-                            break;
+                if (shotX >= 0 && shotX < BOARD_SIZE && shotY >= 0 && shotY < BOARD_SIZE) {
+                    if (playerBoard->BOARD[shotX][shotY] != NULL) {
+                        ship *currShip = playerBoard->BOARD[shotX][shotY];
+                        bool sunk = true;
+                        for (int i = 0; i < currShip->type; i++) {
+                            if (!currShip->boardplace[i].got_shot) {
+                                sunk = false;
+                                break;
+                            }
                         }
+                        if (sunk) {
+                            snprintf(message, sizeof(message), "Przeciwnik zatopił Twój statek!");
+                        }
+                    } else {
+                        playerTurn = true; // Tylko jeśli przeciwnik nie trafi, zmienia się tura
                     }
-                    if (sunk) {
-                        snprintf(message, sizeof(message), "Przeciwnik zatopił Twój statek!");
-                    }
-                    playerTurn = false;
-                } else 
-                {
-                    playerTurn = true;
+                }
+
+                double startTime = GetTime();
+                while (GetTime() - startTime < 1.0) {
+                    UpdateMusicStream(sos); // Utrzymuje działanie muzyki w tle
+                    BeginDrawing();
+                    ClearBackground(RAYWHITE);
+
+                    DrawText("Twoja plansza", playerOffsetX, playerOffsetY - 30, 20, BLACK);
+                    DrawBoard(playerBoard, playerOffsetX, playerOffsetY, false);
+
+                    DrawText("Plansza przeciwnika", enemyOffsetX, enemyOffsetY - 30, 20, BLACK);
+                    DrawBoard(enemyBoard, enemyOffsetX, enemyOffsetY, true);
+
+                    DrawText(message, SCREENWIDTH / 2 - MeasureText(message, 20) / 2, SCREENHEIGHT - 50, 20, DARKGRAY);
+
+                    EndDrawing();
                 }
             }
-            VALIDCLICK:
+
+        VALIDCLICK:
 
             if (CheckWinCondition(playerBoard)) {
                 gameState = GAME_AI_WON;
@@ -1388,7 +1412,7 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
             }
 
             Rectangle playAgainButton = {SCREENWIDTH / 2 - 150, SCREENHEIGHT / 2 + 50, 300, 50};
-            const char* buttonText = "Zagraj ponownie";
+            const char *buttonText = "Zagraj ponownie";
             DrawRectangleRec(playAgainButton, LIGHTGRAY);
             int textWidth = MeasureText(buttonText, 30);
             int textHeight = 30;
@@ -1403,7 +1427,6 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 Vector2 mousePos = GetMousePosition();
                 if (CheckCollisionPointRec(mousePos, playAgainButton)) {
-                    gameState = GAME_PREPARE1;
                     ResetGame(&playerBoard, &enemyBoard, &playerShip, &enemyShip, gameState);
                     gameState = GAME_RUNNING;
                     playerTurn = true;
@@ -1430,18 +1453,18 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
     int player2OffsetX = (SCREENWIDTH * 2/3)+20 - (BOARD_SIZE * TILE_SIZE) / 2;
     int player2OffsetY = (SCREENHEIGHT - (BOARD_SIZE * TILE_SIZE)) / 2;
 
-    bool player1Turn = true;
+    bool player1Turn = false;
     bool turnEnded = true; // Flaga do śledzenia końca tury
     GameState gameState = GAME_RUNNING;
     char message[128] = "";
 
-    for (int alpha = 255; alpha >= 0; alpha-=5) {
+    for (int alpha = 255; alpha >= 0; alpha -= 5) {
         BeginDrawing();
         ClearBackground(RAYWHITE);
-        DrawText("Gracz 1: Twoja plansza", player1OffsetX, player1OffsetY - 30, 20, BLACK);
-        DrawBoard(player1Board, player1OffsetX, player1OffsetY, false);
+        DrawText("Gracz 1:", player1OffsetX, player1OffsetY - 30, 20, BLACK);
+        DrawBoard(player1Board, player1OffsetX, player1OffsetY, true);
 
-         DrawText("Plansza przeciwnika", player2OffsetX, player2OffsetY - 30, 20, BLACK);
+        DrawText("Gracz 2:", player2OffsetX, player2OffsetY - 30, 20, BLACK);
         DrawBoard(player2Board, player2OffsetX, player2OffsetY, true);
         DrawText(message, SCREENWIDTH / 2 - MeasureText(message, 20) / 2, SCREENHEIGHT - 50, 20, DARKGRAY);
 
@@ -1451,11 +1474,7 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
         EndDrawing();
 
         // Add a small delay to make the transition visible
-        double startTime = GetTime();
-        while (GetTime() - startTime < 0.04) 
-        {
-            UpdateMusicStream(sos);
-        }
+        usleep(40000);
     }
 
     while (!WindowShouldClose()) {
@@ -1470,9 +1489,6 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
 
         if (gameState == GAME_RUNNING) {
             if (turnEnded) { // Wyświetlanie przycisku do zmiany tury, tak aby gracze nie widzieli plansz przeciwnika
-                BeginDrawing();
-                ClearBackground(RAYWHITE);
-
                 Rectangle newTurnButton = {SCREENWIDTH / 2 - 100, SCREENHEIGHT / 2 + 50, 200, 50};
                 DrawRectangleRec(newTurnButton, LIGHTGRAY);
                 DrawText("Nowa tura", newTurnButton.x + 30, newTurnButton.y + 10, 30, BLACK);
@@ -1517,8 +1533,26 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                                         if (sunk) {
                                             snprintf(message, sizeof(message), "Gracz 1 zatopił statek!");
                                         }
+                                    } else {
+                                        turnEnded = true;
                                     }
-                                    turnEnded = true;
+                                    double startTime = GetTime();
+                                    while (GetTime() - startTime < 1.0) {
+                                        UpdateMusicStream(sos);
+                                        BeginDrawing();
+                                        ClearBackground(RAYWHITE);
+
+                                        DrawText("Gracz 1: Twoja plansza", player1OffsetX, player1OffsetY - 30, 20, BLACK);
+                                        DrawBoard(player1Board, player1OffsetX, player1OffsetY, false);
+
+                                        DrawText("Plansza przeciwnika", player2OffsetX, player2OffsetY - 30, 20, BLACK);
+                                        DrawBoard(player2Board, player2OffsetX, player2OffsetY, true);
+
+                                        DrawText(message, SCREENWIDTH / 2 - MeasureText(message, 20) / 2, SCREENHEIGHT - 50, 20, DARKGRAY);
+
+                                        EndDrawing();
+                                    }
+
                                 } else {
                                     snprintf(message, sizeof(message), "Strzelałeś już tutaj!");
                                 }
@@ -1558,8 +1592,26 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                                         if (sunk) {
                                             snprintf(message, sizeof(message), "Gracz 2 zatopił statek!");
                                         }
+                                    } else {
+                                        turnEnded = true;
                                     }
-                                    turnEnded = true;
+                                    double startTime = GetTime();
+                                    while (GetTime() - startTime < 1.0) {
+                                        UpdateMusicStream(sos);
+                                        BeginDrawing();
+                                        ClearBackground(RAYWHITE);
+
+                                        DrawText("Gracz 2: Twoja plansza", player2OffsetX, player2OffsetY - 30, 20, BLACK);
+                                        DrawBoard(player2Board, player2OffsetX, player2OffsetY, false);
+
+                                        DrawText("Plansza przeciwnika", player1OffsetX, player1OffsetY - 30, 20, BLACK);
+                                        DrawBoard(player1Board, player1OffsetX, player1OffsetY, true);
+
+                                        DrawText(message, SCREENWIDTH / 2 - MeasureText(message, 20) / 2, SCREENHEIGHT - 50, 20, DARKGRAY);
+
+                                        EndDrawing();
+                                    }
+
                                 } else {
                                     snprintf(message, sizeof(message), "Strzelałeś już tutaj!");
                                 }
@@ -1568,7 +1620,6 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                     }
                 }
 
-                
                 if (CheckWinCondition(player1Board)) {
                     gameState = GAME_PLAYER2_WON;
                 } else if (CheckWinCondition(player2Board)) {
@@ -1594,8 +1645,7 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                 if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 Vector2 mousePos = GetMousePosition();
                 if (CheckCollisionPointRec(mousePos, playAgainButton)) {
-                    gameState = GAME_PREPARE2;
-                    ResetGame(&player1Board, &player2Board, &player1Ship, &player2Ship,gameState);
+                    ResetGame(&player1Board, &player2Board, &player1Ship, &player2Ship, gameState);
                     gameState = GAME_RUNNING;
                     player1Turn = true;
                     turnEnded = false;
