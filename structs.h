@@ -14,6 +14,7 @@ typedef enum { //struct przechowujący stan gry
     GAME_PREPARE1,
     GAME_PREPARE2,
     GAME_RUNNING,
+    GAME_PAUSED,
     GAME_PLAYER1_WON,
 	GAME_PLAYER2_WON,
     GAME_AI_WON
@@ -63,7 +64,22 @@ typedef struct {
     int playerShipCount;
 } GameData;
 
-struct slider{
+typedef struct Button{
+    pair pos;
+    bool isActive;
+    bool isUnderMouse;
+
+    Image sprite;
+    Texture2D texture;
+
+    int fontsize;
+    char *text;
+
+    Rectangle hitbox;
+    Rectangle draw;
+}Button;
+
+typedef struct slider{
 	float val;			//wartość od 0.0 fo 1.0
 	char valText[4];	//służy do wyświetlania wartości
 	bool isActive;		//czy suwak został włączony (jeśli będzie menu pauzy to się przyda)
@@ -78,6 +94,28 @@ struct slider{
 	Image hand_sprite;	//sprite główki
 	Texture2D hand_texture;
 	Rectangle hitbox;	//hitbox tyłu suwaka
-};
+}Slider;
+
+typedef struct{
+    bool isActive;
+    bool isGeneral;
+    bool toMainMenu;
+
+    Color blur;
+    Texture2D background;
+
+    Image sprite;
+    Image image;
+    Texture2D texture;
+
+    Button back;
+    Button volume;
+    Button menu;
+    Button sound_back;
+
+    Slider all_sound;
+    Slider music;
+    Slider effects;
+}PauseMenu;
 
 #endif

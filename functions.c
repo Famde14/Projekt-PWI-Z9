@@ -4,6 +4,7 @@
 #include <time.h>
 #include <math.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>//dla usleep
 #include <stddef.h>//dla definicji nulla 
 #include <stdio.h>//do wywalenia ale to jak bedzie interfejs
@@ -222,8 +223,9 @@ void PrintShipPositions(ship *s)
 	}
 }
 
-GameData GameSet( GameState gameState )
+GameData* GameSet( GameState gameState, PauseMenu* pauseMenu)
 {
+    GameState mainGameState = gameState;
     Texture2D background = LoadTexture("textures/ustawianie_z_siatka.png");
     Texture2D startbattle = LoadTexture("textures/rozpocznij_bitwe.png");
     //DrawTexture(background, 0, 0, WHITE);
@@ -355,9 +357,11 @@ GameData GameSet( GameState gameState )
     Music calm = LoadMusicStream("music/The_calm_before_the_storm.ogg");
     calm.looping = true;
 
+    SetExitKey(0);
     PlayMusicStream(calm);
     while (1)
     {
+        SetMusicVolume(calm, 0.75f*pauseMenu->all_sound.val * pauseMenu->music.val);
         UpdateMusicStream(calm);
         if (WindowShouldClose())
         {
@@ -365,178 +369,122 @@ GameData GameSet( GameState gameState )
             // Do dodania zwalnianie pamięci
             exit(0);
         }
-        
-        // Update ships
-        for (int i = 0; i < MAX_SHIPS; i++)
-        {
-            // Sprawdzenie czy statek nie wyleciał poza okno (update uwzględniający kilka statków)
-            if (playerShips[i].pos.x < 0 || 
-                (playerShips[i].kierunek == 1 || playerShips[i].kierunek == 3 ? playerShips[i].pos.x + playerShips[i].length * TILE_SIZE : 
-                playerShips[i].pos.x + TILE_SIZE) > SCREENWIDTH || 
-                playerShips[i].pos.y < 0 || 
-                (playerShips[i].kierunek == 0 || playerShips[i].kierunek == 2 ? playerShips[i].pos.y + playerShips[i].length * TILE_SIZE : 
-                playerShips[i].pos.y + TILE_SIZE) > SCREENHEIGHT)
-            {
-                playerShips[i].pos.x = SCREENWIDTH / 4 - playerShips[i].texture.width / 2;
-                playerShips[i].pos.y = SCREENHEIGHT / 2 - playerShips[i].texture.height / 2;
-                playerShips[i].updateHitbox(&playerShips[i]);
-            }
 
-            playerShips[i].updateShip(&isDragging, &playerShips[i]);
-            if (isDragging && playerShips[i].isUpdating)
-            {
-
-                // Sprawdzenie czy cały statek mieści się na planszy
-                if (playerShips[i].kierunek == 0 || playerShips[i].kierunek == 2) // Kierunek pionowy
-                {
-                    if (playerShips[i].pos.x >= gridStartX && playerShips[i].pos.x <= gridStartX + gridSize * TILE_SIZE &&
-                        playerShips[i].pos.y >= gridStartY && playerShips[i].pos.y + (int)playerShips[i].length * (TILE_SIZE - 3) <= gridStartY + gridSize * TILE_SIZE)
-                    {
-                        // Jeśli tak, to ustawiamy statek na planszy, wyrównujemy do kratki i sprawdzamy kolizje
-                        playerShips[i].isPlaced = true;
-                        SnapToGrid(&playerShips[i], gridStartX, gridStartY);
-                        CheckShipPlacement(playerShips);
-                    }
-                    else
-                    {
-                        playerShips[i].isPlaced = false;
-                    }
-                }
-                else // Kierunek poziomy
-                {
-                    if (playerShips[i].pos.x >= gridStartX && playerShips[i].pos.x + (int)playerShips[i].length * (TILE_SIZE - 3) <= gridStartX + gridSize * TILE_SIZE &&
-                        playerShips[i].pos.y >= gridStartY && playerShips[i].pos.y <= gridStartY + gridSize * TILE_SIZE)
-                    {
-                        // Jeśli tak, to ustawiamy statek na planszy, wyrównujemy do kratki i sprawdzamy kolizje
-                        playerShips[i].isPlaced = true;
-                        SnapToGrid(&playerShips[i], gridStartX, gridStartY);
-                        CheckShipPlacement(playerShips);
-                    }
-                    else
-                    {
-                        playerShips[i].isPlaced = false;
-                    }
+        if (IsKeyPressed(KEY_ESCAPE)) {
+            if (gameState != GAME_PAUSED) {
+                ReloadGeneralMenu(pauseMenu);
+                UpdatePauseMenu(pauseMenu);
+                gameState = GAME_PAUSED;
+            } else {
+                if(pauseMenu->isGeneral){
+                    UnloadGeneralMenu(pauseMenu);
+                    gameState = mainGameState;
+                } else{
+                    UnloadSoundMenu(pauseMenu);
+                    ReloadGeneralMenu(pauseMenu);
                 }
             }
         }
-
-        BeginDrawing();
-
-
-        DrawTexture(background, 0, 0, WHITE);
-            //DrawLine(SCREENWIDTH / 2, 0, SCREENWIDTH / 2, SCREENHEIGHT, BLACK); // Pionowa linia
-
-            Rectangle StartBattleButton = {SCREENWIDTH - 260, SCREENHEIGHT - 100, 220, 50};
-            
-            //DrawRectangleRec(StartBattleButton, LIGHTGRAY);
-            DrawTexture(startbattle, StartBattleButton.x, StartBattleButton.y, WHITE);
-            Rectangle RandomShipGenButton = {SCREENWIDTH - 560, SCREENHEIGHT - 100, 220, 50};
-            DrawRectangleRec(RandomShipGenButton, LIGHTGRAY);
-            DrawText("Ustaw losowo", RandomShipGenButton.x + 10, RandomShipGenButton.y + 10, 30, BLACK);
-        
-            if (CheckCollisionPointRec(GetMousePosition(), RandomShipGenButton))
-                DrawRectangleLinesEx(RandomShipGenButton, 2, DARKBLUE);
-            if (CheckCollisionPointRec(GetMousePosition(), StartBattleButton))
-                DrawRectangleLinesEx(StartBattleButton, 2, DARKBLUE);
-            
-            if (CheckCollisionPointRec(GetMousePosition(), RandomShipGenButton) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
-            {
-                playerBoard = init_ai_ships();
-                printboard(playerBoard);
-                for (int alpha = 0; alpha <= 255; alpha += 5)
-                {
-                    BeginDrawing();
-                    DrawRectangle(0, 0, SCREENWIDTH, SCREENHEIGHT, (Color){0, 0, 0, alpha});
-                    //napis nad planszą
-                    if(gameState == GAME_START)
-                        DrawText("Twoja plansza", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Twoja plansza", 20) / 2, gridStartY - 50, 20, BLACK);
-                    else if(gameState == GAME_PREPARE1)
-                        DrawText("Gracz 1", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Gracz 1", 20) / 2, gridStartY - 50, 20, BLACK);
-                    else if(gameState == GAME_PREPARE2)
-                        DrawText("Gracz 2", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Gracz 2", 20) / 2, gridStartY - 50, 20, BLACK);
-                        
-                    for (int i = 0; i < gridSize; i++)
-                    {
-                        char label[3]; // Increased size to accommodate two-digit numbers
-                        snprintf(label, sizeof(label), "%c", 'A' + i);
-                        DrawText(label, gridStartX + i * TILE_SIZE + TILE_SIZE / 2 - 5, gridStartY - 30, 20, BLACK);
-                        snprintf(label, sizeof(label), "%d", i + 1);
-                        DrawText(label, gridStartX - 30, gridStartY + i * TILE_SIZE + TILE_SIZE / 2 - 10, 20, BLACK);
-                    }
-
-                    for (int i = 0; i < gridSize; i++)
-                    {
-                        for (int j = 0; j < gridSize; j++)
-                        {
-                            DrawRectangleLines(gridStartX + j * TILE_SIZE, gridStartY + i * TILE_SIZE, TILE_SIZE, TILE_SIZE, BLACK);
-                        }
-                    }
-                    EndDrawing();
-                    double startTime = GetTime();
-                    while (GetTime() - startTime < 0.04)
-                    {
-                        UpdateMusicStream(calm);
-                    }
-                }
+        if(gameState == GAME_PAUSED){
+            BeginDrawing();
+            UpdatePauseMenu(pauseMenu);
+            EndDrawing();
+            if (!pauseMenu->isActive) {
+                   gameState = mainGameState;
+            } else if (pauseMenu->toMainMenu){
                 break;
             }
-
-            if (CheckCollisionPointRec(GetMousePosition(), StartBattleButton) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+        }
+        else{
+            // Update ships
+            for (int i = 0; i < MAX_SHIPS; i++)
             {
-                bool allShipsPlaced = true;
-                for (int i = 0; i < MAX_SHIPS; i++)
+                // Sprawdzenie czy statek nie wyleciał poza okno (update uwzględniający kilka statków)
+                if (playerShips[i].pos.x < 0 ||
+                    (playerShips[i].kierunek == 1 || playerShips[i].kierunek == 3 ? playerShips[i].pos.x + playerShips[i].length * TILE_SIZE :
+                    playerShips[i].pos.x + TILE_SIZE) > SCREENWIDTH ||
+                    playerShips[i].pos.y < 0 ||
+                    (playerShips[i].kierunek == 0 || playerShips[i].kierunek == 2 ? playerShips[i].pos.y + playerShips[i].length * TILE_SIZE :
+                    playerShips[i].pos.y + TILE_SIZE) > SCREENHEIGHT)
                 {
-                    if (playerShips[i].invalidPlacement == true)
-                    {
-                        // Jeśli statek jest źle ustawiony, to nie można rozpocząć bitwy. Wyświetlany jest komunikat o błędzie.
-                        allShipsPlaced = false;
-                        ClearBackground(RAYWHITE);
-                        BeginDrawing();
-                        DrawRectangle(SCREENWIDTH / 2, SCREENHEIGHT / 4, SCREENWIDTH / 2, SCREENHEIGHT / 2, RED);
-                        DrawText("Statki sa zle ustawione!", SCREENWIDTH / 2 + MeasureText("Statki sa zle ustawione!", 30) / 2, SCREENHEIGHT / 2 - 15, 30, WHITE);
-                        EndDrawing();
-                        double startTime = GetTime();
-                        while (GetTime() - startTime < 1.0)
-                        {
-                            UpdateMusicStream(calm);
-                        }
-                        break;
-                    }
-
-                    // Jeśli statek nie jest ustawiony, to nie można rozpocząć bitwy. Wyświetlany jest komunikat o błędzie.
-                    if (playerShips[i].isPlaced == false)
-                    {
-                        allShipsPlaced = false;
-                        ClearBackground(RAYWHITE);
-                        BeginDrawing();
-                        DrawRectangle(SCREENWIDTH / 2, SCREENHEIGHT / 4, SCREENWIDTH / 2, SCREENHEIGHT / 2, BLUE);
-                        DrawText("Nie wszystkie statki sa ustawione!", 3 * SCREENWIDTH / 4 - MeasureText("Nie wszystkie statki sa ustawione!", 30) / 2, SCREENHEIGHT / 2 - 15, 30, WHITE);
-                        EndDrawing();
-                        // zamiast usleep użyje funkcji GetTime() z rayliba (jednak jest cos takiego)
-                        double startTime = GetTime();
-                        while (GetTime() - startTime < 1.0)
-                        {
-                            UpdateMusicStream(calm);
-                        }
-                        break;
-                    }
-                    
+                    playerShips[i].pos.x = SCREENWIDTH / 4 - playerShips[i].texture.width / 2;
+                    playerShips[i].pos.y = SCREENHEIGHT / 2 - playerShips[i].texture.height / 2;
+                    playerShips[i].updateHitbox(&playerShips[i]);
                 }
 
-                if (allShipsPlaced)
+                playerShips[i].updateShip(&isDragging, &playerShips[i]);
+                if (isDragging && playerShips[i].isUpdating)
                 {
+
+                    // Sprawdzenie czy cały statek mieści się na planszy
+                    if (playerShips[i].kierunek == 0 || playerShips[i].kierunek == 2) // Kierunek pionowy
+                    {
+                        if (playerShips[i].pos.x >= gridStartX && playerShips[i].pos.x <= gridStartX + gridSize * TILE_SIZE &&
+                            playerShips[i].pos.y >= gridStartY && playerShips[i].pos.y + (int)playerShips[i].length * (TILE_SIZE - 3) <= gridStartY + gridSize * TILE_SIZE)
+                        {
+                            // Jeśli tak, to ustawiamy statek na planszy, wyrównujemy do kratki i sprawdzamy kolizje
+                            playerShips[i].isPlaced = true;
+                            SnapToGrid(&playerShips[i], gridStartX, gridStartY);
+                            CheckShipPlacement(playerShips);
+                        }
+                        else
+                        {
+                            playerShips[i].isPlaced = false;
+                        }
+                    }
+                    else // Kierunek poziomy
+                    {
+                        if (playerShips[i].pos.x >= gridStartX && playerShips[i].pos.x + (int)playerShips[i].length * (TILE_SIZE - 3) <= gridStartX + gridSize * TILE_SIZE &&
+                            playerShips[i].pos.y >= gridStartY && playerShips[i].pos.y <= gridStartY + gridSize * TILE_SIZE)
+                        {
+                            // Jeśli tak, to ustawiamy statek na planszy, wyrównujemy do kratki i sprawdzamy kolizje
+                            playerShips[i].isPlaced = true;
+                            SnapToGrid(&playerShips[i], gridStartX, gridStartY);
+                            CheckShipPlacement(playerShips);
+                        }
+                        else
+                        {
+                            playerShips[i].isPlaced = false;
+                        }
+                    }
+                }
+            }
+
+            BeginDrawing();
+
+
+            DrawTexture(background, 0, 0, WHITE);
+                //DrawLine(SCREENWIDTH / 2, 0, SCREENWIDTH / 2, SCREENHEIGHT, BLACK); // Pionowa linia
+
+                Rectangle StartBattleButton = {SCREENWIDTH - 260, SCREENHEIGHT - 100, 220, 50};
+
+                //DrawRectangleRec(StartBattleButton, LIGHTGRAY);
+                DrawTexture(startbattle, StartBattleButton.x, StartBattleButton.y, WHITE);
+                Rectangle RandomShipGenButton = {SCREENWIDTH - 560, SCREENHEIGHT - 100, 220, 50};
+                DrawRectangleRec(RandomShipGenButton, LIGHTGRAY);
+                DrawText("Ustaw losowo", RandomShipGenButton.x + 10, RandomShipGenButton.y + 10, 30, BLACK);
+
+                if (CheckCollisionPointRec(GetMousePosition(), RandomShipGenButton))
+                    DrawRectangleLinesEx(RandomShipGenButton, 2, DARKBLUE);
+                if (CheckCollisionPointRec(GetMousePosition(), StartBattleButton))
+                    DrawRectangleLinesEx(StartBattleButton, 2, DARKBLUE);
+
+                if (CheckCollisionPointRec(GetMousePosition(), RandomShipGenButton) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+                {
+                    playerBoard = init_ai_ships();
+                    printboard(playerBoard);
                     for (int alpha = 0; alpha <= 255; alpha += 5)
                     {
                         BeginDrawing();
                         DrawRectangle(0, 0, SCREENWIDTH, SCREENHEIGHT, (Color){0, 0, 0, alpha});
                         //napis nad planszą
-                        if(gameState == GAME_START)
+                        if(mainGameState == GAME_START)
                             DrawText("Twoja plansza", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Twoja plansza", 20) / 2, gridStartY - 50, 20, BLACK);
-                        else if(gameState == GAME_PREPARE1)
+                        else if(mainGameState == GAME_PREPARE1)
                             DrawText("Gracz 1", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Gracz 1", 20) / 2, gridStartY - 50, 20, BLACK);
-                        else if(gameState == GAME_PREPARE2)
+                        else if(mainGameState == GAME_PREPARE2)
                             DrawText("Gracz 2", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Gracz 2", 20) / 2, gridStartY - 50, 20, BLACK);
-                        
+
                         for (int i = 0; i < gridSize; i++)
                         {
                             char label[3]; // Increased size to accommodate two-digit numbers
@@ -546,48 +494,139 @@ GameData GameSet( GameState gameState )
                             DrawText(label, gridStartX - 30, gridStartY + i * TILE_SIZE + TILE_SIZE / 2 - 10, 20, BLACK);
                         }
 
-                        
-                        // Draw ships
-                        // for (int i = 0; i < MAX_SHIPS; i++) {
-                        //    DrawTexture(playerShips[i].texture, (int)playerShips[i].pos.x, (int)playerShips[i].pos.y, WHITE);
-                        //}
+                        for (int i = 0; i < gridSize; i++)
+                        {
+                            for (int j = 0; j < gridSize; j++)
+                            {
+                                DrawRectangleLines(gridStartX + j * TILE_SIZE, gridStartY + i * TILE_SIZE, TILE_SIZE, TILE_SIZE, BLACK);
+                            }
+                        }
                         EndDrawing();
                         double startTime = GetTime();
                         while (GetTime() - startTime < 0.04)
                         {
+                            SetMusicVolume(calm, 0.75f*pauseMenu->all_sound.val * pauseMenu->music.val);
                             UpdateMusicStream(calm);
                         }
                     }
-                    DrawText("Zacznij bitwe!", StartBattleButton.x + 10, StartBattleButton.y + 10, 30, BLACK);
                     break;
                 }
-            }
-            //napis nad planszą
-            if(gameState == GAME_START)
-                DrawText("Twoja plansza", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Twoja plansza", 20) / 2, gridStartY - 50, 20, BLACK);
-            else if(gameState == GAME_PREPARE1)
-                DrawText("Gracz 1", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Gracz 1", 20) / 2, gridStartY - 50, 20, BLACK);
-            else if(gameState == GAME_PREPARE2)
-                DrawText("Gracz 2", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Gracz 2", 20) / 2, gridStartY - 50, 20, BLACK);
 
-            for (int i = 0; i < gridSize; i++)
-            {
-                char label[3]; // Increased size to accommodate two-digit numbers
-                snprintf(label, sizeof(label), "%c", 'A' + i);
-                DrawText(label, gridStartX + i * TILE_SIZE + TILE_SIZE / 2 - 5, gridStartY - 30, 20, BLACK);
-                snprintf(label, sizeof(label), "%d", i + 1);
-                DrawText(label, gridStartX - 30, gridStartY + i * TILE_SIZE + TILE_SIZE / 2 - 10, 20, BLACK);
-            }
+                if (CheckCollisionPointRec(GetMousePosition(), StartBattleButton) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+                {
+                    bool allShipsPlaced = true;
+                    for (int i = 0; i < MAX_SHIPS; i++)
+                    {
+                        if (playerShips[i].invalidPlacement == true)
+                        {
+                            // Jeśli statek jest źle ustawiony, to nie można rozpocząć bitwy. Wyświetlany jest komunikat o błędzie.
+                            allShipsPlaced = false;
+                            ClearBackground(RAYWHITE);
+                            BeginDrawing();
+                            DrawRectangle(SCREENWIDTH / 2, SCREENHEIGHT / 4, SCREENWIDTH / 2, SCREENHEIGHT / 2, RED);
+                            DrawText("Statki sa zle ustawione!", SCREENWIDTH / 2 + MeasureText("Statki sa zle ustawione!", 30) / 2, SCREENHEIGHT / 2 - 15, 30, WHITE);
+                            EndDrawing();
+                            double startTime = GetTime();
+                            while (GetTime() - startTime < 1.0)
+                            {
+                                SetMusicVolume(calm, 0.75f*pauseMenu->all_sound.val * pauseMenu->music.val);
+                                UpdateMusicStream(calm);
+                            }
+                            break;
+                        }
 
-            // Draw ships
-            for (int i = 0; i < MAX_SHIPS; i++)
-            {
-                if (playerShips[i].invalidPlacement)
-                    DrawTexture(playerShips[i].texture, (int)playerShips[i].pos.x, (int)playerShips[i].pos.y, RED); // Czerwony tint dla nieprawidłowo ustawionych statków
-                else
-                    DrawTexture(playerShips[i].texture, (int)playerShips[i].pos.x, (int)playerShips[i].pos.y, WHITE); // Normalny tint dla statków ustawionych prawidłowo
-            }
-        EndDrawing();
+                        // Jeśli statek nie jest ustawiony, to nie można rozpocząć bitwy. Wyświetlany jest komunikat o błędzie.
+                        if (playerShips[i].isPlaced == false)
+                        {
+                            allShipsPlaced = false;
+                            ClearBackground(RAYWHITE);
+                            BeginDrawing();
+                            DrawRectangle(SCREENWIDTH / 2, SCREENHEIGHT / 4, SCREENWIDTH / 2, SCREENHEIGHT / 2, BLUE);
+                            DrawText("Nie wszystkie statki sa ustawione!", 3 * SCREENWIDTH / 4 - MeasureText("Nie wszystkie statki sa ustawione!", 30) / 2, SCREENHEIGHT / 2 - 15, 30, WHITE);
+                            EndDrawing();
+                            // zamiast usleep użyje funkcji GetTime() z rayliba (jednak jest cos takiego)
+                            double startTime = GetTime();
+                            while (GetTime() - startTime < 1.0)
+                            {
+                                SetMusicVolume(calm, 0.75f*pauseMenu->all_sound.val * pauseMenu->music.val);
+                                UpdateMusicStream(calm);
+                            }
+                            break;
+                        }
+
+                    }
+
+                    if (allShipsPlaced)
+                    {
+                        for (int alpha = 0; alpha <= 255; alpha += 5)
+                        {
+                            BeginDrawing();
+                            DrawRectangle(0, 0, SCREENWIDTH, SCREENHEIGHT, (Color){0, 0, 0, alpha});
+                            //napis nad planszą
+                            if(mainGameState == GAME_START)
+                                DrawText("Twoja plansza", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Twoja plansza", 20) / 2, gridStartY - 50, 20, BLACK);
+                            else if(mainGameState == GAME_PREPARE1)
+                                DrawText("Gracz 1", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Gracz 1", 20) / 2, gridStartY - 50, 20, BLACK);
+                            else if(mainGameState == GAME_PREPARE2)
+                                DrawText("Gracz 2", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Gracz 2", 20) / 2, gridStartY - 50, 20, BLACK);
+
+                            for (int i = 0; i < gridSize; i++)
+                            {
+                                char label[3]; // Increased size to accommodate two-digit numbers
+                                snprintf(label, sizeof(label), "%c", 'A' + i);
+                                DrawText(label, gridStartX + i * TILE_SIZE + TILE_SIZE / 2 - 5, gridStartY - 30, 20, BLACK);
+                                snprintf(label, sizeof(label), "%d", i + 1);
+                                DrawText(label, gridStartX - 30, gridStartY + i * TILE_SIZE + TILE_SIZE / 2 - 10, 20, BLACK);
+                            }
+
+
+                            // Draw ships
+                            // for (int i = 0; i < MAX_SHIPS; i++) {
+                            //    DrawTexture(playerShips[i].texture, (int)playerShips[i].pos.x, (int)playerShips[i].pos.y, WHITE);
+                            //}
+                            EndDrawing();
+                            double startTime = GetTime();
+                            while (GetTime() - startTime < 0.04)
+                            {
+                                SetMusicVolume(calm, 0.75f*pauseMenu->all_sound.val * pauseMenu->music.val);
+                                UpdateMusicStream(calm);
+                            }
+                        }
+                        DrawText("Zacznij bitwe!", StartBattleButton.x + 10, StartBattleButton.y + 10, 30, BLACK);
+                        break;
+                    }
+                }
+                //napis nad planszą
+                if(mainGameState == GAME_START)
+                    DrawText("Twoja plansza", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Twoja plansza", 20) / 2, gridStartY - 50, 20, BLACK);
+                else if(mainGameState == GAME_PREPARE1)
+                    DrawText("Gracz 1", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Gracz 1", 20) / 2, gridStartY - 50, 20, BLACK);
+                else if(mainGameState == GAME_PREPARE2)
+                    DrawText("Gracz 2", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Gracz 2", 20) / 2, gridStartY - 50, 20, BLACK);
+
+                for (int i = 0; i < gridSize; i++)
+                {
+                    char label[3]; // Increased size to accommodate two-digit numbers
+                    snprintf(label, sizeof(label), "%c", 'A' + i);
+                    DrawText(label, gridStartX + i * TILE_SIZE + TILE_SIZE / 2 - 5, gridStartY - 30, 20, BLACK);
+                    snprintf(label, sizeof(label), "%d", i + 1);
+                    DrawText(label, gridStartX - 30, gridStartY + i * TILE_SIZE + TILE_SIZE / 2 - 10, 20, BLACK);
+                }
+
+                // Draw ships
+                for (int i = 0; i < MAX_SHIPS; i++)
+                {
+                    if (playerShips[i].invalidPlacement)
+                        DrawTexture(playerShips[i].texture, (int)playerShips[i].pos.x, (int)playerShips[i].pos.y, RED); // Czerwony tint dla nieprawidłowo ustawionych statków
+                    else
+                        DrawTexture(playerShips[i].texture, (int)playerShips[i].pos.x, (int)playerShips[i].pos.y, WHITE); // Normalny tint dla statków ustawionych prawidłowo
+                }
+            EndDrawing();
+        }
+    }
+    if (pauseMenu->toMainMenu){
+        NewGame(pauseMenu);
+        return NULL;
     }
 
     // Układanie statków na w zmiennej playerBoard
@@ -625,7 +664,11 @@ GameData GameSet( GameState gameState )
         UnloadTexture(ship4Textures[i]);
     }
 
-    GameData gameData = {playerBoard, playerShips, MAX_SHIPS};
+    GameData* gameData;
+    gameData = (GameData *)malloc(sizeof(GameData));
+    gameData->playerBoard = playerBoard;
+    gameData->playerShips = playerShips;
+    gameData->playerShipCount = MAX_SHIPS;
     StopMusicStream(calm);
     return gameData;
 }
@@ -933,7 +976,7 @@ array_cordinals* Get_array_cordinals(int offsetX, int offsetY) {
     return cordinal;
 };
 
-void ResetGame(board **playerBoard, board **enemyBoard, ship **playerShip, ship **enemyShip, GameState gameState) //basicowa funkcja resetujaca gre (pozniej trzeba wyrzucic stad playership i enemyship, zeby samo usuwalo - nikt nie bedzie tego recznie ustawial)
+void ResetGame(board **playerBoard, board **enemyBoard, ship **playerShip, ship **enemyShip, GameState gameState, PauseMenu *pauseMenu) //basicowa funkcja resetujaca gre (pozniej trzeba wyrzucic stad playership i enemyship, zeby samo usuwalo - nikt nie bedzie tego recznie ustawial)
 {
     //delboard(*playerBoard);
     //delboard(*enemyBoard);
@@ -941,15 +984,15 @@ void ResetGame(board **playerBoard, board **enemyBoard, ship **playerShip, ship 
     //delship(*enemyShip);
     if(gameState == GAME_PREPARE1)
     {   *enemyBoard = init_ai_ships();
-        GameData gameData = GameSet(GAME_START);
-        *playerBoard = gameData.playerBoard;
+        GameData* gameData = GameSet(GAME_START, pauseMenu);
+        *playerBoard = gameData->playerBoard;
     }
     else if(gameState == GAME_PREPARE2)
     {
-        GameData gameData1 = GameSet(GAME_PREPARE1);
-        GameData gameData2 = GameSet(GAME_PREPARE2);
-        *playerBoard = gameData1.playerBoard;
-        *enemyBoard = gameData2.playerBoard;
+        GameData* gameData1 = GameSet(GAME_PREPARE1, pauseMenu);
+        GameData* gameData2 = GameSet(GAME_PREPARE2, pauseMenu);
+        *playerBoard = gameData1->playerBoard;
+        *enemyBoard = gameData2->playerBoard;
     }
 	/*reczne dodawanie statkow, pozniej tego nie bedzie, bo zacznie sie funkcja z ustawianiem przez uzytkownika*/
     *playerShip = NULL;
@@ -1251,7 +1294,8 @@ board* init_ai_ships(){
     return k;
 }
 
-void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *enemyShip) {
+void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *enemyShip, PauseMenu *pauseMenu) {
+    SetExitKey(0);
     Music sos = LoadMusicStream("music/SOS_Signal.ogg");
     sos.looping = true;
     PlayMusicStream(sos);
@@ -1284,22 +1328,35 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
         double startTime = GetTime();
         while (GetTime() - startTime < 0.04) 
         {
+            SetMusicVolume(sos, 0.33f*pauseMenu->all_sound.val * pauseMenu->music.val);
             UpdateMusicStream(sos);
         }
     }
 
     while (!WindowShouldClose()) {
+        SetMusicVolume(sos, 0.33f*pauseMenu->all_sound.val * pauseMenu->music.val);
         UpdateMusicStream(sos);
         BeginDrawing();
-
-        if (IsKeyPressed(KEY_ESCAPE)) {
-            CloseWindow();
-            break;
-        }
-
         ClearBackground(RAYWHITE);
 
+        if (IsKeyPressed(KEY_ESCAPE)) {
+            if (gameState != GAME_PAUSED) {
+                ReloadGeneralMenu(pauseMenu);
+                UpdatePauseMenu(pauseMenu);
+                gameState = GAME_PAUSED;
+            } else{
+                if(pauseMenu->isGeneral){
+                    UnloadGeneralMenu(pauseMenu);
+                    gameState = GAME_RUNNING;
+                } else{
+                    UnloadSoundMenu(pauseMenu);
+                    ReloadGeneralMenu(pauseMenu);
+                }
+            }
+        }
+
         if (gameState == GAME_RUNNING) {
+
             DrawText("Twoja plansza", playerOffsetX, playerOffsetY - 30, 20, BLACK);
             DrawBoard(playerBoard, playerOffsetX, playerOffsetY, false);
 
@@ -1380,13 +1437,19 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
             } else if (CheckWinCondition(enemyBoard)) {
                 gameState = GAME_PLAYER1_WON;
             }
+        } else if (gameState == GAME_PAUSED){
+               UpdatePauseMenu(pauseMenu);
+               if (!pauseMenu->isActive) {
+                   gameState = GAME_RUNNING;
+            } else if (pauseMenu->toMainMenu){
+                break;
+            }
         } else {
             if (gameState == GAME_PLAYER1_WON) {
                 DrawText("Wygrywasz!", SCREENWIDTH / 2 - MeasureText("Wygrywasz!", 40) / 2, SCREENHEIGHT / 2 - 20, 40, GREEN);
             } else if (gameState == GAME_AI_WON) {
                 DrawText("Przegrywasz!", SCREENWIDTH / 2 - MeasureText("Przegrywasz!", 40) / 2, SCREENHEIGHT / 2 - 20, 40, RED);
             }
-
             Rectangle playAgainButton = {SCREENWIDTH / 2 - 150, SCREENHEIGHT / 2 + 50, 300, 50};
             const char* buttonText = "Zagraj ponownie";
             DrawRectangleRec(playAgainButton, LIGHTGRAY);
@@ -1404,7 +1467,7 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
                 Vector2 mousePos = GetMousePosition();
                 if (CheckCollisionPointRec(mousePos, playAgainButton)) {
                     gameState = GAME_PREPARE1;
-                    ResetGame(&playerBoard, &enemyBoard, &playerShip, &enemyShip, gameState);
+                    ResetGame(&playerBoard, &enemyBoard, &playerShip, &enemyShip, gameState, pauseMenu);
                     gameState = GAME_RUNNING;
                     playerTurn = true;
                     message[0] = '\0';
@@ -1418,13 +1481,19 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
         EndDrawing();
     }
     StopMusicStream(sos);
-    CloseWindow();
+    if (pauseMenu->toMainMenu){
+        NewGame(pauseMenu);
+    } if(IsWindowReady()){
+        CloseWindow();
+    }
 }
 
-void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, ship *player2Ship) {
+void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, ship *player2Ship, PauseMenu *pauseMenu) {
+    SetExitKey(0);
     Music sos = LoadMusicStream("music/SOS_Signal.ogg");
     sos.looping = true;
     PlayMusicStream(sos);
+    SetMusicVolume(sos, 0.33f*pauseMenu->all_sound.val * pauseMenu->music.val);
     int player1OffsetX = (SCREENWIDTH * 1/3)-20 - (BOARD_SIZE * TILE_SIZE) / 2;
     int player1OffsetY = (SCREENHEIGHT - (BOARD_SIZE * TILE_SIZE)) / 2;
     int player2OffsetX = (SCREENWIDTH * 2/3)+20 - (BOARD_SIZE * TILE_SIZE) / 2;
@@ -1454,18 +1523,31 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
         double startTime = GetTime();
         while (GetTime() - startTime < 0.04) 
         {
+            SetMusicVolume(sos, 0.33f*pauseMenu->all_sound.val * pauseMenu->music.val);
             UpdateMusicStream(sos);
         }
     }
 
     while (!WindowShouldClose()) {
+        SetMusicVolume(sos, 0.33f*pauseMenu->all_sound.val * pauseMenu->music.val);
         UpdateMusicStream(sos);
         BeginDrawing();
         ClearBackground(RAYWHITE);
 
         if (IsKeyPressed(KEY_ESCAPE)) {
-            CloseWindow();
-            break;
+            if (gameState != GAME_PAUSED) {
+                ReloadGeneralMenu(pauseMenu);
+                UpdatePauseMenu(pauseMenu);
+                gameState = GAME_PAUSED;
+            } else{
+                if(pauseMenu->isGeneral){
+                    UnloadGeneralMenu(pauseMenu);
+                    gameState = GAME_RUNNING;
+                } else{
+                    UnloadSoundMenu(pauseMenu);
+                    ReloadGeneralMenu(pauseMenu);
+                }
+            }
         }
 
         if (gameState == GAME_RUNNING) {
@@ -1575,6 +1657,13 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                     gameState = GAME_PLAYER1_WON;
                 }
             }
+        }else if (gameState == GAME_PAUSED){
+            UpdatePauseMenu(pauseMenu);
+            if (!pauseMenu->isActive) {
+                gameState = GAME_RUNNING;
+            } else if (pauseMenu->toMainMenu){
+                break;
+            }
         } else {
             // Wyświetlenie wyniku gry
             if (gameState == GAME_PLAYER1_WON) {
@@ -1595,7 +1684,7 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                 Vector2 mousePos = GetMousePosition();
                 if (CheckCollisionPointRec(mousePos, playAgainButton)) {
                     gameState = GAME_PREPARE2;
-                    ResetGame(&player1Board, &player2Board, &player1Ship, &player2Ship,gameState);
+                    ResetGame(&player1Board, &player2Board, &player1Ship, &player2Ship,gameState, pauseMenu);
                     gameState = GAME_RUNNING;
                     player1Turn = true;
                     turnEnded = false;
@@ -1610,57 +1699,229 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
         EndDrawing();
     }
     StopMusicStream(sos);
-    CloseWindow();
+
+    if (pauseMenu->toMainMenu){
+        NewGame(pauseMenu);
+    } if(IsWindowReady()){
+        CloseWindow();
+    }
 }
 
-void UpdateSlider(struct slider* s){
-	s->hitbox.x = s->left - s->hand_texture.width / 2;
-    s->hitbox.y = s->y_pos;
-	s->hitbox.width = s->sl_texture.width + s->hand_texture.width;
-	s->hitbox.height = s->sl_texture.height;
+// Button InitButton(float x, float y, void* function, char* spriteLoc, char* text, int fontsize){
+Button InitButton(float x, float y, char* spriteLoc, char* text, int fontsize){
+    Button b;
+    b.isActive = false;
+    b.isUnderMouse = false;
 
+    // b.function = function;
+    b.sprite = LoadImage(spriteLoc);
+    if (&b.sprite == NULL) {
+        TraceLog(LOG_ERROR, "Failed to load button sprite");
+    }
+    ImageResize(&b.sprite, 360, 90);
+    b.texture = LoadTextureFromImage(b.sprite);
+
+    b.pos.x = x - b.texture.width / 2;
+    b.pos.y = y - b.texture.height / 2;
+
+    b.text = strdup(text);
+    b.fontsize = fontsize;
+
+    b.hitbox.x = b.pos.x;
+    b.hitbox.y = b.pos.y;
+    b.hitbox.width = b.texture.width;
+    b.hitbox.height = b.texture.height;
+
+    b.draw = b.hitbox;
+
+    return b;
+}
+
+void UpdateButton(Button *b) {
+    if (b->isActive) {
+        if (CheckCollisionPointRec(GetMousePosition(), b->hitbox) && !b->isUnderMouse){
+            b->draw.x -= b->hitbox.width * 0.05f;
+            b->draw.y -= b->hitbox.height * 0.05f;
+            b->draw.width = b->hitbox.width * 1.1f;
+            b->draw.height = b->hitbox.height * 1.1f;
+            b->isUnderMouse = true;
+        } else if(!CheckCollisionPointRec(GetMousePosition(), b->hitbox) && b->isUnderMouse){
+            b->draw = b->hitbox;
+            b->isUnderMouse = false;
+        }
+
+        DrawTexturePro(b->texture,(Rectangle){0, 0, b->texture.width, b->texture.height}, b->draw, (Vector2){0,0}, 0.0f, WHITE);
+        DrawText(b->text,
+                 (int)(b->hitbox.x + (b->hitbox.width / 2) - (MeasureText(b->text, b->fontsize) / 2)),
+                 (int)(b->hitbox.y + (b->hitbox.height / 2) - (b->fontsize / 2)),
+                 b->fontsize, BLACK);
+    }
+}
+
+Slider InitSlider(float y_pos, float left, float right, float sl_height, float hand_width, float hand_height, char* sl_spriteLoc, char* hand_spriteLoc){
+	Slider s;
+	s.val = 1.0f;
+
+	s.isActive = false;
+	s.isUpdating = false;
+
+	s.y_pos = y_pos;
+
+	s.left = left;
+	s.right = right;
+
+	s.sl_sprite = LoadImage(sl_spriteLoc);
+	if (s.sl_sprite.data == NULL) {
+        TraceLog(LOG_ERROR, "Failed to load slider sprite");
+    }
+	ImageResize(&s.sl_sprite, (int)(right - left), (int)sl_height);
+    s.sl_texture = LoadTextureFromImage(s.sl_sprite);
+
+	s.hand_sprite = LoadImage(hand_spriteLoc);
+	if (s.hand_sprite.data == NULL) {
+        TraceLog(LOG_ERROR, "Failed to load handle sprite");
+    }
+	ImageResize(&s.hand_sprite, (int)hand_width, (int)hand_height);
+    s.hand_texture = LoadTextureFromImage(s.hand_sprite);
+
+	s.handle = s.right - s.hand_texture.width / 2;
+
+	s.hitbox.x = left - s.hand_texture.width / 2;
+    s.hitbox.y = y_pos;
+	s.hitbox.width = s.sl_texture.width + s.hand_texture.width;
+	s.hitbox.height = s.sl_texture.height;
+
+	return s;
+}
+
+void UpdateSlider(Slider* s, void *context){
 	if(s->isActive){
 		if((IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(GetMousePosition(), s->hitbox)) || (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && s->isUpdating)){
-
 		s->isUpdating = true;
-
 		}
 		else {
 			s->isUpdating = false;
 		}
 
-		if(s->isUpdating){
-			if(IsMouseButtonDown(MOUSE_BUTTON_LEFT)){
-
-				if(((GetMouseX() - s->hand_texture.width / 2) >= (s->left - s->hand_texture.width / 2))
+		if(s->isUpdating && IsMouseButtonDown(MOUSE_BUTTON_LEFT)){
+			if(((GetMouseX() - s->hand_texture.width / 2) >= (s->left - s->hand_texture.width / 2))
 				&& ((GetMouseX() - s->hand_texture.width / 2) <= (s->right - s->hand_texture.width / 2))){
-					s->handle = GetMouseX() - s->hand_texture.width / 2;
+				s->handle = GetMouseX() - s->hand_texture.width / 2;
+				s->val = (s->handle - s->left + s->hand_texture.width / 2) / (s->right - s->left);
 
-					s->val = (s->handle - s->left + s->hand_texture.width / 2) / (s->right - s->left);
-
-					s->val = floor(100*s->val)/100;
-				}
-				else if((GetMouseX() - s->hand_texture.width / 2) < (s->left - s->hand_texture.width / 2)){
-					s->handle = s->left - s->hand_texture.width / 2;
-					s->val = 0.0f;
-				}
-				else{
-					s->handle = s->right - s->hand_texture.width / 2;
-					s->val = 1.0f;
-				}
+				s->val = floor(100*s->val)/100;
+			}
+			else if((GetMouseX() - s->hand_texture.width / 2) < (s->left - s->hand_texture.width / 2)){
+				s->handle = s->left - s->hand_texture.width / 2;
+				s->val = 0.0f;
+			}
+			else{
+				s->handle = s->right - s->hand_texture.width / 2;
+				s->val = 1.0f;
 			}
 		}
 		DrawTexture(s->sl_texture, (int)s->left, (int)s->y_pos, RAYWHITE);
-		DrawTexture(s->hand_texture, (int)s->handle, (int)s->y_pos, RAYWHITE);
+		DrawTexture(s->hand_texture, (int)s->handle, (int)(s->y_pos - (s->hand_texture.height - s->hitbox.height) / 2), RAYWHITE);
+		//DrawRectangleLines(s->hitbox.x, s->hitbox.y, s->hitbox.width, s->hitbox.height, RED);
 
 		snprintf(s->valText, sizeof(s->valText), "%d", (int)(s->val * 100));
 		DrawText(s->valText, (int)(s->right + s->hand_texture.width / 2), (int)(s->y_pos), s->hitbox.height, BLACK);
-
 	}
 }
 
-GameState PreGame() 
+void UnloadGeneralMenu(PauseMenu *pm){
+    pm->back.isActive = false;
+    pm->volume.isActive = false;
+    pm->menu.isActive = false;
+}
+
+void ReloadGeneralMenu(PauseMenu *pm){
+    pm->isActive = true;
+    pm->back.isActive = true;
+    pm->volume.isActive = true;
+    pm->menu.isActive = true;
+}
+
+void UnloadSoundMenu(PauseMenu *pm){
+    pm->sound_back.isActive = false;
+    pm->all_sound.isActive = false;
+    pm->music.isActive = false;
+    pm->effects.isActive = false;
+}
+
+void ReloadSoundMenu(PauseMenu *pm){
+    pm->isActive = true;
+    pm->sound_back.isActive = true;
+    pm->all_sound.isActive = true;
+    pm->music.isActive = true;
+    pm->effects.isActive = true;
+}
+
+PauseMenu* InitPauseMenu(){
+    PauseMenu *pm;
+
+    pm = (PauseMenu *) malloc(sizeof(PauseMenu));
+
+    pm->isGeneral = true;
+    pm->toMainMenu = false;
+    pm->blur = (Color){0, 0, 0, 128};
+    pm->background = LoadTexture("textures/ustawianie_bez_siatki.png");
+    pm->back = InitButton(SCREENWIDTH / 2, SCREENHEIGHT / 4 * 3, "textures/3x1.png", "Powrót", 40);
+    pm->volume = InitButton(SCREENWIDTH / 2, SCREENHEIGHT / 2, "textures/3x1.png", "Glosnosc", 40);
+    pm->menu = InitButton(SCREENWIDTH / 2, SCREENHEIGHT / 4, "textures/3x1.png", "Menu Glowne", 40);
+
+    pm->sound_back = InitButton(SCREENWIDTH / 2, SCREENHEIGHT / 6*5, "textures/3x1.png", "Powrót", 40);
+    pm->all_sound = InitSlider(SCREENHEIGHT / 6, SCREENWIDTH / 7*2, SCREENWIDTH / 7*5, 50.0f, 60.0f, 60.0f, "textures/slider.png", "textures/1x1.png");
+    pm->music = InitSlider(SCREENHEIGHT / 3, SCREENWIDTH / 7*2, SCREENWIDTH / 7*5, 50.0f, 60.0f, 60.0f, "textures/slider.png", "textures/1x1.png");
+    pm->effects = InitSlider(SCREENHEIGHT / 2, SCREENWIDTH / 7*2, SCREENWIDTH / 7*5, 50.0f, 60.0f, 60.0f, "textures/slider.png", "textures/1x1.png");
+
+    return pm;
+}
+
+
+void UpdatePauseMenu(PauseMenu *pm){
+    DrawTexture(pm->background, 0, 0, WHITE);
+    DrawRectangle(0, 0, SCREENWIDTH, SCREENHEIGHT, pm->blur);
+
+    if(pm->isGeneral){
+        UpdateButton(&pm->back);
+        UpdateButton(&pm->volume);
+        UpdateButton(&pm->menu);
+
+        if (CheckCollisionPointRec(GetMousePosition(),pm->back.hitbox) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            pm->isActive = false;
+            return;
+        }
+
+        if (CheckCollisionPointRec(GetMousePosition(),pm->volume.hitbox) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            UnloadGeneralMenu(pm);
+            ReloadSoundMenu(pm);
+            pm->isGeneral = false;
+        }
+
+        if (CheckCollisionPointRec(GetMousePosition(),pm->menu.hitbox) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            pm->toMainMenu = true;
+            return;
+        }
+    }
+
+    else {
+        UpdateButton(&pm->sound_back);
+        UpdateSlider(&pm->all_sound, pm);
+        UpdateSlider(&pm->music, pm);
+        UpdateSlider(&pm->effects, pm);
+
+        if (CheckCollisionPointRec(GetMousePosition(),pm->sound_back.hitbox) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            UnloadSoundMenu(pm);
+            ReloadGeneralMenu(pm);
+            pm->isGeneral = true;
+        }
+    }
+}
+
+GameState PreGame(PauseMenu *pauseMenu)
 {
+    pauseMenu->toMainMenu = true;
     Music pirent = LoadMusicStream("music/Pirates-entertaiment.ogg");
     pirent.looping = true;
     PlayMusicStream(pirent);
@@ -1673,6 +1934,7 @@ GameState PreGame()
 
     while (!WindowShouldClose()) 
     {
+        SetMusicVolume(pirent, 0.5f * pauseMenu->all_sound.val * pauseMenu->music.val);
         UpdateMusicStream(pirent);
 
         BeginDrawing();
@@ -1716,11 +1978,13 @@ GameState PreGame()
         if (CheckCollisionPointRec(mousePoint, buttonOnePlayer) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
             EndDrawing();
             StopMusicStream(pirent);
+            pauseMenu->toMainMenu = false;
             return GAME_PREPARE1;
         } 
         else if (CheckCollisionPointRec(mousePoint, buttonTwoPlayers) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
             EndDrawing();
             StopMusicStream(pirent);
+            pauseMenu->toMainMenu = false;
             return GAME_PREPARE2;
         }
 
@@ -1742,5 +2006,44 @@ GameState PreGame()
     UnloadTexture(backgroundTexture);
     UnloadTexture(buttonTexture);
     StopMusicStream(pirent);
+    pauseMenu->toMainMenu = false;
     return GAME_RUNNING; // Default state if the window is closed
+}
+
+void NewGame(PauseMenu *pauseMenu){
+    SetExitKey(KEY_ESCAPE);
+    GameState gameState = GAME_START;
+
+    board *enemyBoard = init_ai_ships();        //druga plansza
+    ship *enemyShip = NULL;
+    ship *playerShip = NULL;
+
+    /*
+        Przekazywanie niezainicjalizowany zmiennych do funkcji to narażanie się na undefined
+        behaviour, więc nie chcąc wywracać kodu do góry nogami inicjalizuję je jako NULL.
+    */
+
+    gameState = PreGame(pauseMenu);
+
+    if(gameState == GAME_PREPARE1)
+    {
+        GameData* gameData = GameSet(GAME_START, pauseMenu);
+        if(gameData != NULL){
+            PlayGame(gameData->playerBoard, enemyBoard,playerShip,enemyShip,pauseMenu);
+            free(gameData);
+        }
+    }
+    else if(gameState == GAME_PREPARE2)
+    {
+        GameData* gameData1 = GameSet(GAME_PREPARE1, pauseMenu);
+        GameData* gameData2 = GameSet(GAME_PREPARE2, pauseMenu);
+        if(gameData1 != NULL && gameData2 != NULL){
+            PlayGame_PvP(gameData1->playerBoard, gameData2->playerBoard,playerShip,enemyShip,pauseMenu);
+            free(gameData1);
+            free(gameData2);
+        }
+    }
+    free(enemyBoard);
+    free(enemyShip);
+    free(playerShip);
 }
