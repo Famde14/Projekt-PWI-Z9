@@ -69,8 +69,15 @@ void UpdateShip(bool* isDragging, ship* s)
 }
 void SnapToGrid(ship *s, int gridStartX, int gridStartY)
 {
-	s->pos.x = gridStartX + ((int)((s->pos.x - gridStartX) / TILE_SIZE)) * TILE_SIZE;
-	s->pos.y = gridStartY + ((int)((s->pos.y - gridStartY) / TILE_SIZE)) * TILE_SIZE;
+    s->pos.x = gridStartX + ((int)((s->pos.x - gridStartX + TILE_SIZE / 2) / TILE_SIZE)) * TILE_SIZE;
+    s->pos.y = gridStartY + ((int)((s->pos.y - gridStartY + TILE_SIZE / 2) / TILE_SIZE)) * TILE_SIZE;
+
+    // Ensure the ship does not go out of bounds
+    if (s->pos.x < gridStartX) s->pos.x = gridStartX;
+    if (s->pos.x > gridStartX + (BOARD_SIZE - 1) * TILE_SIZE) s->pos.x = gridStartX + (BOARD_SIZE - 1) * TILE_SIZE;
+    if (s->pos.y < gridStartY) s->pos.y = gridStartY;
+    if (s->pos.y > gridStartY + (BOARD_SIZE - 1) * TILE_SIZE) s->pos.y = gridStartY + (BOARD_SIZE - 1) * TILE_SIZE;
+
 	s->updateHitbox(s);
 
 	if (s->boardplace != NULL)
@@ -358,9 +365,13 @@ GameData GameSet( GameState gameState )
         // Update ships
         for (int i = 0; i < MAX_SHIPS; i++)
         {
-            // Sprawdzenie czy statek nie wyleciał poza okno
-            if (playerShips[i].pos.x < 0 || playerShips[i].pos.x + (int)playerShips[i].length * (TILE_SIZE) > SCREENWIDTH ||
-                playerShips[i].pos.y < 0 || playerShips[i].pos.y + TILE_SIZE > SCREENHEIGHT)
+            // Sprawdzenie czy statek nie wyleciał poza okno (update uwzględniający kilka statków)
+            if (playerShips[i].pos.x < 0 || 
+                (playerShips[i].kierunek == 1 || playerShips[i].kierunek == 3 ? playerShips[i].pos.x + playerShips[i].length * TILE_SIZE : 
+                playerShips[i].pos.x + TILE_SIZE) > SCREENWIDTH || 
+                playerShips[i].pos.y < 0 || 
+                (playerShips[i].kierunek == 0 || playerShips[i].kierunek == 2 ? playerShips[i].pos.y + playerShips[i].length * TILE_SIZE : 
+                playerShips[i].pos.y + TILE_SIZE) > SCREENHEIGHT)
             {
                 playerShips[i].pos.x = SCREENWIDTH / 4 - playerShips[i].texture.width / 2;
                 playerShips[i].pos.y = SCREENHEIGHT / 2 - playerShips[i].texture.height / 2;
@@ -415,10 +426,56 @@ GameData GameSet( GameState gameState )
             Rectangle StartBattleButton = {SCREENWIDTH - 260, SCREENHEIGHT - 100, 220, 50};
             DrawRectangleRec(StartBattleButton, LIGHTGRAY);
             DrawText("Zacznij bitwe!", StartBattleButton.x + 10, StartBattleButton.y + 10, 30, BLACK);
+
+            Rectangle RandomShipGenButton = {SCREENWIDTH - 560, SCREENHEIGHT - 100, 220, 50};
+            DrawRectangleRec(RandomShipGenButton, LIGHTGRAY);
+            DrawText("Ustaw losowo", RandomShipGenButton.x + 10, RandomShipGenButton.y + 10, 30, BLACK);
         
+            if (CheckCollisionPointRec(GetMousePosition(), RandomShipGenButton))
+                DrawRectangleLinesEx(RandomShipGenButton, 2, DARKBLUE);
             if (CheckCollisionPointRec(GetMousePosition(), StartBattleButton))
-            {
                 DrawRectangleLinesEx(StartBattleButton, 2, DARKBLUE);
+            
+            if (CheckCollisionPointRec(GetMousePosition(), RandomShipGenButton) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+            {
+                playerBoard = init_ai_ships();
+                printboard(playerBoard);
+                for (int alpha = 0; alpha <= 255; alpha += 5)
+                {
+                    BeginDrawing();
+                    DrawRectangle(0, 0, SCREENWIDTH, SCREENHEIGHT, (Color){0, 0, 0, alpha});
+                    //napis nad planszą
+                    if(gameState == GAME_START)
+                        DrawText("Twoja plansza", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Twoja plansza", 20) / 2, gridStartY - 50, 20, BLACK);
+                    else if(gameState == GAME_PREPARE1)
+                        DrawText("Gracz 1", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Gracz 1", 20) / 2, gridStartY - 50, 20, BLACK);
+                    else if(gameState == GAME_PREPARE2)
+                        DrawText("Gracz 2", gridStartX + (gridSize * TILE_SIZE) / 2 - MeasureText("Gracz 2", 20) / 2, gridStartY - 50, 20, BLACK);
+                        
+                    for (int i = 0; i < gridSize; i++)
+                    {
+                        char label[3]; // Increased size to accommodate two-digit numbers
+                        snprintf(label, sizeof(label), "%c", 'A' + i);
+                        DrawText(label, gridStartX + i * TILE_SIZE + TILE_SIZE / 2 - 5, gridStartY - 30, 20, BLACK);
+                        snprintf(label, sizeof(label), "%d", i + 1);
+                        DrawText(label, gridStartX - 30, gridStartY + i * TILE_SIZE + TILE_SIZE / 2 - 10, 20, BLACK);
+                    }
+
+                    for (int i = 0; i < gridSize; i++)
+                    {
+                        for (int j = 0; j < gridSize; j++)
+                        {
+                            DrawRectangleLines(gridStartX + j * TILE_SIZE, gridStartY + i * TILE_SIZE, TILE_SIZE, TILE_SIZE, BLACK);
+                        }
+                    }
+                    EndDrawing();
+                    double startTime = GetTime();
+                    while (GetTime() - startTime < 0.04)
+                    {
+                        UpdateMusicStream(calm);
+                    }
+                }
+                break;
             }
 
             if (CheckCollisionPointRec(GetMousePosition(), StartBattleButton) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
@@ -435,7 +492,11 @@ GameData GameSet( GameState gameState )
                         DrawRectangle(SCREENWIDTH / 2, SCREENHEIGHT / 4, SCREENWIDTH / 2, SCREENHEIGHT / 2, RED);
                         DrawText("Statki sa zle ustawione!", SCREENWIDTH / 2 + MeasureText("Statki sa zle ustawione!", 30) / 2, SCREENHEIGHT / 2 - 15, 30, WHITE);
                         EndDrawing();
-                        usleep(1000000);
+                        double startTime = GetTime();
+                        while (GetTime() - startTime < 1.0)
+                        {
+                            UpdateMusicStream(calm);
+                        }
                         break;
                     }
 
@@ -448,7 +509,12 @@ GameData GameSet( GameState gameState )
                         DrawRectangle(SCREENWIDTH / 2, SCREENHEIGHT / 4, SCREENWIDTH / 2, SCREENHEIGHT / 2, BLUE);
                         DrawText("Nie wszystkie statki sa ustawione!", 3 * SCREENWIDTH / 4 - MeasureText("Nie wszystkie statki sa ustawione!", 30) / 2, SCREENHEIGHT / 2 - 15, 30, WHITE);
                         EndDrawing();
-                        usleep(1000000);
+                        // zamiast usleep użyje funkcji GetTime() z rayliba (jednak jest cos takiego)
+                        double startTime = GetTime();
+                        while (GetTime() - startTime < 1.0)
+                        {
+                            UpdateMusicStream(calm);
+                        }
                         break;
                     }
                     
@@ -489,7 +555,11 @@ GameData GameSet( GameState gameState )
                         //    DrawTexture(playerShips[i].texture, (int)playerShips[i].pos.x, (int)playerShips[i].pos.y, WHITE);
                         //}
                         EndDrawing();
-                        usleep(40000);
+                        double startTime = GetTime();
+                        while (GetTime() - startTime < 0.04)
+                        {
+                            UpdateMusicStream(calm);
+                        }
                     }
                     DrawText("Zacznij bitwe!", StartBattleButton.x + 10, StartBattleButton.y + 10, 30, BLACK);
                     break;
@@ -872,15 +942,24 @@ array_cordinals* Get_array_cordinals(int offsetX, int offsetY) {
     return cordinal;
 };
 
-void ResetGame(board **playerBoard, board **enemyBoard, ship **playerShip, ship **enemyShip) //basicowa funkcja resetujaca gre (pozniej trzeba wyrzucic stad playership i enemyship, zeby samo usuwalo - nikt nie bedzie tego recznie ustawial)
+void ResetGame(board **playerBoard, board **enemyBoard, ship **playerShip, ship **enemyShip, GameState gameState) //basicowa funkcja resetujaca gre (pozniej trzeba wyrzucic stad playership i enemyship, zeby samo usuwalo - nikt nie bedzie tego recznie ustawial)
 {
     //delboard(*playerBoard);
     //delboard(*enemyBoard);
     //delship(*playerShip);
     //delship(*enemyShip);
-
-    *playerBoard = init_ai_ships();//w następnej rundzie wszystko niech będzie ustawione losowo
-    *enemyBoard = init_ai_ships();
+    if(gameState == GAME_PREPARE1)
+    {   *enemyBoard = init_ai_ships();
+        GameData gameData = GameSet(GAME_START);
+        *playerBoard = gameData.playerBoard;
+    }
+    else if(gameState == GAME_PREPARE2)
+    {
+        GameData gameData1 = GameSet(GAME_PREPARE1);
+        GameData gameData2 = GameSet(GAME_PREPARE2);
+        *playerBoard = gameData1.playerBoard;
+        *enemyBoard = gameData2.playerBoard;
+    }
 	/*reczne dodawanie statkow, pozniej tego nie bedzie, bo zacznie sie funkcja z ustawianiem przez uzytkownika*/
     *playerShip = NULL;
     *enemyShip = NULL;
@@ -1188,7 +1267,11 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
         EndDrawing();
 
         // Add a small delay to make the transition visible
-        usleep(40000);
+        double startTime = GetTime();
+        while (GetTime() - startTime < 0.04) 
+        {
+            UpdateMusicStream(sos);
+        }
     }
 
     while (!WindowShouldClose()) {
@@ -1306,7 +1389,8 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 Vector2 mousePos = GetMousePosition();
                 if (CheckCollisionPointRec(mousePos, playAgainButton)) {
-                    ResetGame(&playerBoard, &enemyBoard, &playerShip, &enemyShip);
+                    gameState = GAME_PREPARE1;
+                    ResetGame(&playerBoard, &enemyBoard, &playerShip, &enemyShip, gameState);
                     gameState = GAME_RUNNING;
                     playerTurn = true;
                     message[0] = '\0';
@@ -1353,7 +1437,11 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
         EndDrawing();
 
         // Add a small delay to make the transition visible
-        usleep(40000);
+        double startTime = GetTime();
+        while (GetTime() - startTime < 0.04) 
+        {
+            UpdateMusicStream(sos);
+        }
     }
 
     while (!WindowShouldClose()) {
@@ -1492,7 +1580,8 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                 if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 Vector2 mousePos = GetMousePosition();
                 if (CheckCollisionPointRec(mousePos, playAgainButton)) {
-                    ResetGame(&player1Board, &player2Board, &player1Ship, &player2Ship);
+                    gameState = GAME_PREPARE2;
+                    ResetGame(&player1Board, &player2Board, &player1Ship, &player2Ship,gameState);
                     gameState = GAME_RUNNING;
                     player1Turn = true;
                     turnEnded = false;
