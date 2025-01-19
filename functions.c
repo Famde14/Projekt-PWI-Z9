@@ -224,6 +224,10 @@ void PrintShipPositions(ship *s)
 
 GameData GameSet( GameState gameState )
 {
+    Texture2D background = LoadTexture("textures/ustawianie_z_siatka.png");
+    Texture2D startbattle = LoadTexture("textures/rozpocznij_bitwe.png");
+    //DrawTexture(background, 0, 0, WHITE);
+    //DrawTexture(startbattle, 0, 0, WHITE);
     int gridSize = 10; // Rozmiar planszy
     // int TILE_SIZE = 50; // Rozmiar pojedynczej kratki (w pikselach)
 
@@ -418,15 +422,14 @@ GameData GameSet( GameState gameState )
 
         BeginDrawing();
 
-        ClearBackground(RAYWHITE);
 
- 
-            DrawLine(SCREENWIDTH / 2, 0, SCREENWIDTH / 2, SCREENHEIGHT, BLACK); // Pionowa linia
+        DrawTexture(background, 0, 0, WHITE);
+            //DrawLine(SCREENWIDTH / 2, 0, SCREENWIDTH / 2, SCREENHEIGHT, BLACK); // Pionowa linia
 
             Rectangle StartBattleButton = {SCREENWIDTH - 260, SCREENHEIGHT - 100, 220, 50};
-            DrawRectangleRec(StartBattleButton, LIGHTGRAY);
-            DrawText("Zacznij bitwe!", StartBattleButton.x + 10, StartBattleButton.y + 10, 30, BLACK);
-
+            
+            //DrawRectangleRec(StartBattleButton, LIGHTGRAY);
+            DrawTexture(startbattle, StartBattleButton.x, StartBattleButton.y, WHITE);
             Rectangle RandomShipGenButton = {SCREENWIDTH - 560, SCREENHEIGHT - 100, 220, 50};
             DrawRectangleRec(RandomShipGenButton, LIGHTGRAY);
             DrawText("Ustaw losowo", RandomShipGenButton.x + 10, RandomShipGenButton.y + 10, 30, BLACK);
@@ -543,13 +546,7 @@ GameData GameSet( GameState gameState )
                             DrawText(label, gridStartX - 30, gridStartY + i * TILE_SIZE + TILE_SIZE / 2 - 10, 20, BLACK);
                         }
 
-                        for (int i = 0; i < gridSize; i++)
-                        {
-                            for (int j = 0; j < gridSize; j++)
-                            {
-                                DrawRectangleLines(gridStartX + j * TILE_SIZE, gridStartY + i * TILE_SIZE, TILE_SIZE, TILE_SIZE, BLACK);
-                            }
-                        }
+                        
                         // Draw ships
                         // for (int i = 0; i < MAX_SHIPS; i++) {
                         //    DrawTexture(playerShips[i].texture, (int)playerShips[i].pos.x, (int)playerShips[i].pos.y, WHITE);
@@ -582,13 +579,6 @@ GameData GameSet( GameState gameState )
                 DrawText(label, gridStartX - 30, gridStartY + i * TILE_SIZE + TILE_SIZE / 2 - 10, 20, BLACK);
             }
 
-            for (int i = 0; i < gridSize; i++)
-            {
-                for (int j = 0; j < gridSize; j++)
-                {
-                    DrawRectangleLines(gridStartX + j * TILE_SIZE, gridStartY + i * TILE_SIZE, TILE_SIZE, TILE_SIZE, BLACK);
-                }
-            }
             // Draw ships
             for (int i = 0; i < MAX_SHIPS; i++)
             {
@@ -610,6 +600,7 @@ GameData GameSet( GameState gameState )
         {
             int dl = playerShips[i].length;
             ship *playerS = initship(dl);
+            playerS->kierunek = playerShips[i].kierunek;;
             placeStatek(playerBoard, playerS, (pair){gridX, gridY}, playerShips[i].kierunek);
         }
     }
@@ -974,8 +965,8 @@ void ResetGame(board **playerBoard, board **enemyBoard, ship **playerShip, ship 
 void DrawBoard(board *playerBoard, int offsetX, int offsetY, bool isEnemy) //funkcja rysujaca plansze
 {
     static bool texturesLoaded = false;
-    static Texture2D shipTextures[4];
-    static Texture2D ship_brokenTextures[4];
+    static Texture2D shipTextures[16];
+    static Texture2D ship_brokenTextures[16];
     static Texture2D XTexture;
 
     if (!texturesLoaded) { //ładowanie tekstur (tak żeby się nie powtarzało bez sensu)
@@ -989,25 +980,47 @@ void DrawBoard(board *playerBoard, int offsetX, int offsetY, bool isEnemy) //fun
         Image ship_brokenImages[4];
 
         shipImages[0] = LoadImage("textures/1x1.png");
-        shipTextures[0] = LoadTextureFromImage(shipImages[0]);
         ship_brokenImages[0] = LoadImage("textures/1x1_zepsuta.png");
-        ship_brokenTextures[0] = LoadTextureFromImage(ship_brokenImages[0]);
+        for(int i=0; i<4; i++) //0,3 - struktury 1x1
+        {
+            shipTextures[i] = LoadTextureFromImage(shipImages[0]);
+            ship_brokenTextures[i] = LoadTextureFromImage(ship_brokenImages[0]);
+            ImageRotateCW(&shipImages[0]);
+            ImageRotateCW(&ship_brokenImages[0]);
+        }
 
         shipImages[1] = LoadImage("textures/2x1.png");
-        shipTextures[1] = LoadTextureFromImage(shipImages[1]);
         ship_brokenImages[1] = LoadImage("textures/2x1_zepsuta.png");
-        ship_brokenTextures[1] = LoadTextureFromImage(ship_brokenImages[1]);
+        for(int i=0; i<4; i++) //4,7 - struktury 2x1
+        {
+            shipTextures[4+i] = LoadTextureFromImage(shipImages[1]);
+            ship_brokenTextures[4+i] = LoadTextureFromImage(ship_brokenImages[1]);
+            ImageRotateCW(&shipImages[1]);
+            ImageRotateCW(&ship_brokenImages[1]);
+            
+        }
 
         shipImages[2] = LoadImage("textures/3x1.png");
-        shipTextures[2] = LoadTextureFromImage(shipImages[2]);
         ship_brokenImages[2] = LoadImage("textures/3x1_zepsuta.png");
-        ship_brokenTextures[2] = LoadTextureFromImage(ship_brokenImages[2]);
+        for(int i=0; i<4; i++) 
+        {
+            shipTextures[8+i] = LoadTextureFromImage(shipImages[2]);
+            ship_brokenTextures[8+i] = LoadTextureFromImage(ship_brokenImages[2]);
+            ImageRotateCW(&shipImages[2]);
+            ImageRotateCW(&ship_brokenImages[2]);
+        }
 
         shipImages[3] = LoadImage("textures/4x1.png");
-        shipTextures[3] = LoadTextureFromImage(shipImages[3]);
         ship_brokenImages[3] = LoadImage("textures/4x1_zepsuta.png");
-        ship_brokenTextures[3] = LoadTextureFromImage(ship_brokenImages[3]);
-
+        
+        for(int i=0; i<4; i++) 
+        {
+            shipTextures[12+i] = LoadTextureFromImage(shipImages[3]);
+            ship_brokenTextures[12+i] = LoadTextureFromImage(ship_brokenImages[3]);
+            ImageRotateCW(&shipImages[3]);
+            ImageRotateCW(&ship_brokenImages[3]);
+            
+        }
         // Mark textures as loaded
         texturesLoaded = true;
     }
@@ -1041,21 +1054,21 @@ void DrawBoard(board *playerBoard, int offsetX, int offsetY, bool isEnemy) //fun
                 }
 
                 if (shots == currShip->type) // Check if the ship is fully destroyed
-                {
-                    DrawTexture(ship_brokenTextures[currShip->type-1], offsetX + currShip->boardplace[0].cords.x * TILE_SIZE, offsetY + currShip->boardplace[0].cords.y * TILE_SIZE, WHITE);
+                { //0 -> prawo, 1 -> dol, 2 -> lewo, 3 -> gora
+                    DrawTexture(ship_brokenTextures[(currShip->type-1)*4+(currShip->kierunek==0?3:currShip->kierunek-1)], offsetX + currShip->boardplace[0].cords.x * TILE_SIZE, offsetY + currShip->boardplace[0].cords.y * TILE_SIZE, WHITE);
                 }
                 else
                 {
                     if(!isEnemy)
                     {
-                        DrawTexture(shipTextures[currShip->type-1], offsetX + currShip->boardplace[0].cords.x * TILE_SIZE, offsetY + currShip->boardplace[0].cords.y * TILE_SIZE, WHITE);
+                        DrawTexture(shipTextures[(currShip->type-1)*4+(currShip->kierunek==0?3:currShip->kierunek-1)], offsetX + currShip->boardplace[0].cords.x * TILE_SIZE, offsetY + currShip->boardplace[0].cords.y * TILE_SIZE, WHITE);
                     }
                     
                     for (int i = 0; i < currShip->type; i++)
                     {
                         if (currShip->boardplace[i].got_shot) 
                         {
-                        DrawTexture(XTexture, offsetX + currShip->boardplace[i].cords.x * TILE_SIZE, offsetY + currShip->boardplace[i].cords.y * TILE_SIZE, WHITE);
+                            DrawTexture(XTexture, offsetX + currShip->boardplace[i].cords.x * TILE_SIZE, offsetY + currShip->boardplace[i].cords.y * TILE_SIZE, WHITE);
                         }
                     }
                 }
@@ -1225,6 +1238,7 @@ board* init_ai_ships(){
             if (tablica[j][i] != 0) {
                 //printf("Creating ship type %d at (%d, %d).\n", tablica[i][j], i, j);
                 ship* enemy_ship = initship(tablica[j][i]);
+                enemy_ship->kierunek = 1;
                 if (enemy_ship == NULL) {
                     printf("Error: initship() returned NULL for type %d.\n", tablica[j][i]);
                     continue;
