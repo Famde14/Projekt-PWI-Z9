@@ -12,7 +12,7 @@ void UpdateShip(bool *isDragging, struct ship *s);               // wywołuje mo
 void SnapToGrid(struct ship *s, int gridStartX, int gridStartY); // przypisuje statek do kratki
 void PrintShipPositions(struct ship *);                          // funkcja pomocnicza do wypisywania koordynatóœ statku
 void CheckShipPlacement(struct ship *ships);                     // sprawdza czy statek jest ustawiony zgodnie z zasadami gry
-GameData GameSet(GameState gameState);                           // uruchamia ustawianie statków
+GameData* GameSet(GameState gameState, PauseMenu *pauseMenu);                           // uruchamia ustawianie statków
 
 /*plansza i interakcja z plansza*/
 board *initboard();
@@ -23,14 +23,25 @@ void printboard(board *boardtab);                                      // funkcj
 struct array_cordinals *Get_array_cordinals(int offsetX, int offsetY); // przekształca położenie myszki na położenie statku na planszy
 
 /*gameplay*/
-GameState PreGame();                                                                     // funkcja do obslugi menu przed rozpoczeciem gry
-void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *enemyShip); // funkcja do obslugi gry (inicjuje okienko oraz dodany jest jakis biedny postgame)
+void NewGame(PauseMenu *pauseMenu);
+GameState PreGame(PauseMenu *pauseMenu);                                                                     // funkcja do obslugi menu przed rozpoczeciem gry
+void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *enemyShip, PauseMenu *pauseMenu); // funkcja do obslugi gry (inicjuje okienko oraz dodany jest jakis biedny postgame)
+void ResetGame(board **playerBoard, board **enemyBoard, ship **playerShip, ship **enemyShip, GameState gameState, PauseMenu *pauseMenu); //basicowa funkcja resetujaca gre (pozniej trzeba wyrzucic stad playership i enemyship, zeby samo usuwalo - nikt nie bedzie tego recznie ustawial)
 
-/*ustawienie*/
-void UpdateSlider(struct slider *s); // aktualizuje suwak służący do ustawiania np. głośności
+/*menu pauzy*/
+Button InitButton(float x, float y, char* spriteLoc, char* text, int fontsize); //customowy przycisk do menu pauzy
+void UpdateButton(Button *b);
+Slider InitSlider(float y_pos, float left, float right, float sl_height, float hand_width, float hand_height, char* sl_spriteLoc, char* hand_spriteLoc); //tworzenie slidera
+void UpdateSlider(Slider* s, void *context); // aktualizuje suwak służący do ustawiania np. głośności
+void UnloadGeneralMenu(PauseMenu *pm);
+void ReloadGeneralMenu(PauseMenu *pm);
+void UnloadSoundMenu(PauseMenu *pm);
+void ReloadSoundMenu(PauseMenu *pm);
+PauseMenu* InitPauseMenu();
+void UpdatePauseMenu(PauseMenu *pm);
 
 /*do dodania*/
-void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, ship *player2Ship); // funkcja do obslugi gry gracz vs gracz
+void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, ship *player2Ship, PauseMenu *pauseMenu); // funkcja do obslugi gry gracz vs gracz
 ship *initship(int type);
 void delship(ship *statek);
 board *init_ai_ships();
