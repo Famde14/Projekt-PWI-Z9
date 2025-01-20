@@ -13,7 +13,8 @@ void SnapToGrid(struct ship *s, int gridStartX, int gridStartY); // przypisuje s
 void PrintShipPositions(struct ship *);                          // funkcja pomocnicza do wypisywania koordynatóœ statku
 void CheckShipPlacement(struct ship *ships);                     // sprawdza czy statek jest ustawiony zgodnie z zasadami gry
 GameData* GameSet(GameState gameState, PauseMenu *pauseMenu);                           // uruchamia ustawianie statków
-
+void scream();//wywołuje dźwięk zatapiania
+void FreeSounds();
 /*plansza i interakcja z plansza*/
 board *initboard();
 void delboard(board *boardtab);

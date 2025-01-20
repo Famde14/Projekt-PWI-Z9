@@ -9,6 +9,13 @@
 #include <stddef.h>//dla definicji nulla 
 #include <stdio.h>//do wywalenia ale to jak bedzie interfejs
 
+Sound scr;//efekty dźwiękowe deklaruję jako zmienne globalne
+int loadscr = 0;
+Sound blind;
+int loadblind = 0;
+Sound shoted;
+int loadshot = 0;
+
 void UpdateHitbox(ship* s) {		//ustala pozycję i wymiary hitbox'u
     s->hitbox.x = s->pos.x;
     s->hitbox.y = s->pos.y;
@@ -370,6 +377,7 @@ GameData* GameSet( GameState gameState, PauseMenu* pauseMenu)
         if (WindowShouldClose())
         {
             CloseWindow();
+            FreeSounds();
             // Do dodania zwalnianie pamięci
             exit(0);
         }
@@ -858,11 +866,23 @@ void placeStatek(board *boardtab, ship *curr_ship, pair begin, int direction) //
 
 void beingshot(ship* curr_ship,pair paira)
 {
+    //Sound scream = LoadSound("Soundeffects/screaming_sinking.wav");
 	for (int i = 0; i < curr_ship->type; i++)
 	{
 		if((curr_ship->boardplace[i]).cords.x==paira.x&&(curr_ship->boardplace[i]).cords.y==paira.y)//nic nie sugeruje ale to byloby mniej brzydsze jakby uzyc klas
-		{(curr_ship->boardplace[i]).got_shot=1;}
+		{
+            (curr_ship->boardplace[i]).got_shot=1;
+            //PlaySound(scream);
+            //UnloadSound(scream);
+            //return;
+        }
 	}
+    //UnloadSound(scream);
+    shoted = LoadSound("Soundeffects/shoted.wav");
+    SetSoundVolume(shoted, 0.5f);//trzeba by było zmodyfikować suwak, pod zmianę dynamiki dźwięku
+    loadshot = 1;
+    PlaySound(shoted);
+    //UnloadSound(shoted);
 }
 
 void shoot(board *playerBoard, pair shot)
@@ -874,7 +894,14 @@ void shoot(board *playerBoard, pair shot)
 	{
         ship *curr_ship = playerBoard->BOARD[x][y];
 		beingshot(curr_ship,shot);
+        return;
     }
+    blind = LoadSound("Soundeffects/blind.wav");
+    SetSoundVolume(blind, 0.5f);
+    loadblind = 1;
+    //SetSoundVolume(blind, 1.0f);
+    PlaySound(blind);
+    //UnloadSound(blind);
 }
 
 void printboard(board* boardA)//funkcja drukuje tablice gracza. Funkcja raczej testowa
@@ -1303,6 +1330,30 @@ board* init_ai_ships(){
     return k;
 }
 
+void scream(){
+    scr = LoadSound("Soundeffects/screaming_sinking.wav");
+    SetSoundVolume(scr, 0.5f);
+    loadscr = 1;
+    PlaySound(scr);
+}
+
+void FreeSounds(){
+    if(loadblind){
+        puts("Zwalniam_blind");
+        UnloadSound(blind);
+        loadblind = 0;
+    }
+    if(loadshot){
+        puts("Zwalniam_shoted");
+        UnloadSound(shoted);
+        loadshot = 0;
+    }
+    if(loadscr){
+        puts("Zwalniam_scr");
+        loadscr = 0;
+        UnloadSound(scr);
+    }
+}
 void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *enemyShip, PauseMenu *pauseMenu) {
     SetExitKey(0);
     Music sos = LoadMusicStream("music/SOS_Signal.ogg");
@@ -1401,6 +1452,7 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
                                     }
                                 }
                                 if (sunk) {
+                                    scream();
                                     snprintf(message, sizeof(message), "Gracz zatopił statek!");
                                 }
                             } else {
@@ -1445,6 +1497,8 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
                             }
                         }
                         if (sunk) {
+                            scream();
+                            //tutaj wstawimy dźwięk zatapiania
                             snprintf(message, sizeof(message), "Przeciwnik zatopił Twój statek!");
                         }
                     } else {
@@ -1527,6 +1581,7 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
                     playerTurn = true;
                     message[0] = '\0';
                 } else if (CheckCollisionPointRec(mousePos, closeButton)) {
+                    FreeSounds();
                     CloseWindow();
                     break;
                 }
@@ -1541,6 +1596,7 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
     if (pauseMenu->toMainMenu){
         NewGame(pauseMenu);
     } if(IsWindowReady()){
+        FreeSounds();
         CloseWindow();
     }
 }
@@ -1669,6 +1725,7 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                                             }
                                         }
                                         if (sunk) {
+                                            scream();
                                             snprintf(message, sizeof(message), "Gracz 1 zatopił statek!");
                                         }
                                     } else {
@@ -1728,6 +1785,7 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                                             }
                                         }
                                         if (sunk) {
+                                            scream();
                                             snprintf(message, sizeof(message), "Gracz 2 zatopił statek!");
                                         }
                                     } else {
@@ -1817,6 +1875,7 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                     turnEnded = false;
                     message[0] = '\0';
                 } else if (CheckCollisionPointRec(mousePos, closeButton)) {
+                    FreeSounds();
                     CloseWindow();
                     break;
                 }
@@ -1833,6 +1892,7 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
     if (pauseMenu->toMainMenu){
         NewGame(pauseMenu);
     } if(IsWindowReady()){
+        FreeSounds();
         CloseWindow();
     }
 }
