@@ -99,6 +99,7 @@ typedef struct slider{
 typedef struct{
     bool isActive;
     bool isGeneral;
+    bool isMainMenu;
     bool toMainMenu;
 
     Color blur;

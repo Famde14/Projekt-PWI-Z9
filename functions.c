@@ -2041,16 +2041,33 @@ void UpdatePauseMenu(PauseMenu *pm){
         UpdateSlider(&pm->music, pm);
         UpdateSlider(&pm->effects, pm);
 
+        if(pm->isMainMenu){
+            SetExitKey(0);
+            if(IsKeyPressed(KEY_ESCAPE)){
+                UnloadSoundMenu(pm);
+                pm->isActive = false;
+                SetExitKey(KEY_ESCAPE);
+            }
+        }
+
         if (CheckCollisionPointRec(GetMousePosition(),pm->sound_back.hitbox) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            UnloadSoundMenu(pm);
-            ReloadGeneralMenu(pm);
-            pm->isGeneral = true;
+             if(!pm->isMainMenu){
+                 UnloadSoundMenu(pm);
+                 ReloadGeneralMenu(pm);
+                 pm->isGeneral = true;
+            } else{
+                UnloadSoundMenu(pm);
+                pm->isActive = false;
+                SetExitKey(KEY_ESCAPE);
+            }
+
         }
     }
 }
 
 GameState PreGame(PauseMenu *pauseMenu)
 {
+    GameState gameState = GAME_START;
     pauseMenu->toMainMenu = true;
     Music pirent = LoadMusicStream("music/Pirates-entertaiment.ogg");
     pirent.looping = true;
@@ -2061,6 +2078,7 @@ GameState PreGame(PauseMenu *pauseMenu)
     Texture2D twoPlayersTexture = LoadTexture("Napisy/dwochgraczy.png");
     Texture2D backgroundTexture = LoadTexture("Napisy/tlo.png");
     Texture2D buttonTexture = LoadTexture("Napisy/przycisk.png");
+    Texture2D soundSettingsTexture = LoadTexture("Napisy/glosnosc.png");
 
     while (!WindowShouldClose()) 
     {
@@ -2068,99 +2086,136 @@ GameState PreGame(PauseMenu *pauseMenu)
         UpdateMusicStream(pirent);
 
         BeginDrawing();
-        DrawTexture(backgroundTexture, -20, -20, WHITE);
 
-        // Skalowanie i rysowanie tytułu gry
-        float titleScale = 1.5f; // Skala tytułu
-        int titlePosX = SCREENWIDTH / 2 - (titleTexture.width * titleScale) / 2;
-        int titlePosY = SCREENHEIGHT / 2 - 280; 
-        DrawTextureEx(titleTexture, (Vector2){titlePosX, titlePosY+30}, 0.0f, titleScale, WHITE);
-    
-        int buttonSpacing = 20;
-        int buttonWidth = 350;  // Docelowa szerokość przycisków
-        int buttonHeight = 150; // Docelowa wysokość przycisków
-        float buttonScaleX = (float)buttonWidth / buttonTexture.width;
+        if(gameState == GAME_START){
+            DrawTexture(backgroundTexture, -20, -20, WHITE);
 
-// Prostokąty dla przycisków
-Rectangle buttonOnePlayer = { SCREENWIDTH / 2 - buttonWidth / 2, SCREENHEIGHT / 2 - buttonHeight / 2, buttonWidth, buttonHeight };
-Rectangle buttonTwoPlayers = { SCREENWIDTH / 2 - buttonWidth / 2, SCREENHEIGHT / 2 - buttonHeight / 2 + buttonHeight + buttonSpacing, buttonWidth, buttonHeight };
+            // Skalowanie i rysowanie tytułu gry
+            float titleScale = 1.5f; // Skala tytułu
+            int titlePosX = SCREENWIDTH / 2 - (titleTexture.width * titleScale) / 2;
+            int titlePosY = SCREENHEIGHT / 2 - 280;
+            DrawTextureEx(titleTexture, (Vector2){titlePosX, titlePosY+30}, 0.0f, titleScale, WHITE);
 
-// Zmienne skalowania przycisków
-Rectangle scaledButtonOnePlayer = buttonOnePlayer;
-Rectangle scaledButtonTwoPlayers = buttonTwoPlayers;
+            int buttonSpacing = 20;
+            int buttonWidth = 350;  // Docelowa szerokość przycisków
+            int buttonHeight = 150; // Docelowa wysokość przycisków
+            float buttonScaleX = (float)buttonWidth / buttonTexture.width;
 
-// Skalowanie przycisków o 10% przy najechaniu myszką
-Vector2 mousePos = GetMousePosition();
+            // Prostokąty dla przycisków
+            Rectangle buttonOnePlayer = { SCREENWIDTH / 2 - buttonWidth / 2, SCREENHEIGHT / 2 - buttonHeight / 2, buttonWidth, buttonHeight };
+            Rectangle buttonTwoPlayers = { SCREENWIDTH / 2 - buttonWidth / 2, SCREENHEIGHT / 2 - buttonHeight / 2 + buttonHeight + buttonSpacing, buttonWidth, buttonHeight };
+            Rectangle buttonSoundSettings = { SCREENWIDTH/16*15, SCREENHEIGHT/32*30, soundSettingsTexture.width, soundSettingsTexture.height };
 
-if (CheckCollisionPointRec(mousePos, buttonOnePlayer)) {
-    scaledButtonOnePlayer.x -= buttonOnePlayer.width * 0.05f;  // Przesunięcie w lewo
-    scaledButtonOnePlayer.y -= buttonOnePlayer.height * 0.05f; // Przesunięcie w górę
-    scaledButtonOnePlayer.width *= 1.1f;                       // Zwiększenie szerokości
-    scaledButtonOnePlayer.height *= 1.1f;                      // Zwiększenie wysokości
-}
+            // Zmienne skalowania przycisków
+            Rectangle scaledButtonOnePlayer = buttonOnePlayer;
+            Rectangle scaledButtonTwoPlayers = buttonTwoPlayers;
+            Rectangle scaledButtonSoundSettings = buttonSoundSettings;
 
-if (CheckCollisionPointRec(mousePos, buttonTwoPlayers)) {
-    scaledButtonTwoPlayers.x -= buttonTwoPlayers.width * 0.05f;
-    scaledButtonTwoPlayers.y -= buttonTwoPlayers.height * 0.05f;
-    scaledButtonTwoPlayers.width *= 1.1f;
-    scaledButtonTwoPlayers.height *= 1.1f;
-}
+            // Skalowanie przycisków o 10% przy najechaniu myszką
+            Vector2 mousePos = GetMousePosition();
 
-// Rysowanie tła przycisków
-DrawTexturePro(
-    buttonTexture,
-    (Rectangle){0, 0, buttonTexture.width, buttonTexture.height},
-    scaledButtonOnePlayer,
-    (Vector2){0, 0},
-    0.0f,
-    WHITE
-);
+            if (CheckCollisionPointRec(mousePos, buttonOnePlayer)) {
+                scaledButtonOnePlayer.x -= buttonOnePlayer.width * 0.05f;  // Przesunięcie w lewo
+                scaledButtonOnePlayer.y -= buttonOnePlayer.height * 0.05f; // Przesunięcie w górę
+                scaledButtonOnePlayer.width *= 1.1f;                       // Zwiększenie szerokości
+                scaledButtonOnePlayer.height *= 1.1f;                      // Zwiększenie wysokości
+            }
 
-DrawTexturePro(
-    buttonTexture,
-    (Rectangle){0, 0, buttonTexture.width, buttonTexture.height},
-    scaledButtonTwoPlayers,
-    (Vector2){0, 0},
-    0.0f,
-    WHITE
-);
+            if (CheckCollisionPointRec(mousePos, buttonTwoPlayers)) {
+                scaledButtonTwoPlayers.x -= buttonTwoPlayers.width * 0.05f;
+                scaledButtonTwoPlayers.y -= buttonTwoPlayers.height * 0.05f;
+                scaledButtonTwoPlayers.width *= 1.1f;
+                scaledButtonTwoPlayers.height *= 1.1f;
+            }
 
-// Skalowanie obrazów wewnątrz przycisków
-float onePlayerImageScale = fminf(
-    (scaledButtonOnePlayer.width / onePlayerTexture.width),
-    (scaledButtonOnePlayer.height / onePlayerTexture.height)
-);
+            if (CheckCollisionPointRec(mousePos, buttonSoundSettings)) {
+                scaledButtonSoundSettings.x -= buttonSoundSettings.width * 0.05f;
+                scaledButtonSoundSettings.y -= buttonSoundSettings.height * 0.05f;
+                scaledButtonSoundSettings.width *= 1.1f;
+                scaledButtonSoundSettings.height *= 1.1f;
+            }
 
-float twoPlayersImageScale = fminf(
-    (scaledButtonTwoPlayers.width / twoPlayersTexture.width),
-    (scaledButtonTwoPlayers.height / twoPlayersTexture.height)
-);
+            // Rysowanie tła przycisków
+            DrawTexturePro(
+                buttonTexture,
+                (Rectangle){0, 0, buttonTexture.width, buttonTexture.height},
+                scaledButtonOnePlayer,
+                (Vector2){0, 0},
+                0.0f,
+                WHITE
+            );
 
-// Obliczenie pozycji obrazów wewnętrznych
-int onePlayerImageX = scaledButtonOnePlayer.x + (scaledButtonOnePlayer.width - onePlayerTexture.width * onePlayerImageScale) / 2;
-int onePlayerImageY = scaledButtonOnePlayer.y + (scaledButtonOnePlayer.height - onePlayerTexture.height * onePlayerImageScale) / 2;
-int twoPlayersImageX = scaledButtonTwoPlayers.x + (scaledButtonTwoPlayers.width - twoPlayersTexture.width * twoPlayersImageScale) / 2;
-int twoPlayersImageY = scaledButtonTwoPlayers.y + (scaledButtonTwoPlayers.height - twoPlayersTexture.height * twoPlayersImageScale) / 2;
+            DrawTexturePro(
+                buttonTexture,
+                (Rectangle){0, 0, buttonTexture.width, buttonTexture.height},
+                scaledButtonTwoPlayers,
+                (Vector2){0, 0},
+                0.0f,
+                WHITE
+            );
 
-// Rysowanie obrazów wewnątrz przycisków
-DrawTextureEx(onePlayerTexture, (Vector2){onePlayerImageX+26, onePlayerImageY+10}, 0.0f, onePlayerImageScale-0.16, WHITE);
-DrawTextureEx(twoPlayersTexture, (Vector2){twoPlayersImageX+26, twoPlayersImageY+10}, 0.0f, twoPlayersImageScale-0.16, WHITE);
+            DrawTexturePro(
+                soundSettingsTexture,
+                (Rectangle){0, 0, soundSettingsTexture.width, soundSettingsTexture.height},
+                scaledButtonSoundSettings,
+                (Vector2){0, 0},
+                0.0f,
+                WHITE
+            );
+
+            // Skalowanie obrazów wewnątrz przycisków
+            float onePlayerImageScale = fminf(
+                (scaledButtonOnePlayer.width / onePlayerTexture.width),
+                (scaledButtonOnePlayer.height / onePlayerTexture.height)
+            );
+
+            float twoPlayersImageScale = fminf(
+                (scaledButtonTwoPlayers.width / twoPlayersTexture.width),
+                (scaledButtonTwoPlayers.height / twoPlayersTexture.height)
+            );
+
+            float soundSettingsImageScale = fminf(
+                (scaledButtonSoundSettings.width / soundSettingsTexture.width),
+                (scaledButtonSoundSettings.height / soundSettingsTexture.height)
+            );
+
+            // Obliczenie pozycji obrazów wewnętrznych
+            int onePlayerImageX = scaledButtonOnePlayer.x + (scaledButtonOnePlayer.width - onePlayerTexture.width * onePlayerImageScale) / 2;
+            int onePlayerImageY = scaledButtonOnePlayer.y + (scaledButtonOnePlayer.height - onePlayerTexture.height * onePlayerImageScale) / 2;
+            int twoPlayersImageX = scaledButtonTwoPlayers.x + (scaledButtonTwoPlayers.width - twoPlayersTexture.width * twoPlayersImageScale) / 2;
+            int twoPlayersImageY = scaledButtonTwoPlayers.y + (scaledButtonTwoPlayers.height - twoPlayersTexture.height * twoPlayersImageScale) / 2;
+            int soundSettingsImageX = scaledButtonSoundSettings.x + (scaledButtonSoundSettings.width - soundSettingsTexture.width * soundSettingsImageScale) / 2;
+            int soundSettingsImageY = scaledButtonSoundSettings.y + (scaledButtonSoundSettings.height - soundSettingsTexture.height * soundSettingsImageScale) / 2;
+
+            // Rysowanie obrazów wewnątrz przycisków
+            DrawTextureEx(onePlayerTexture, (Vector2){onePlayerImageX+26, onePlayerImageY+10}, 0.0f, onePlayerImageScale-0.16, WHITE);
+            DrawTextureEx(twoPlayersTexture, (Vector2){twoPlayersImageX+26, twoPlayersImageY+10}, 0.0f, twoPlayersImageScale-0.16, WHITE);
 
 
 
-        if (CheckCollisionPointRec(mousePos, buttonOnePlayer) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            EndDrawing();
-            StopMusicStream(pirent);
-            pauseMenu->toMainMenu = false;
-            return GAME_PREPARE1;
-        } 
-        else if (CheckCollisionPointRec(mousePos, buttonTwoPlayers) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            EndDrawing();
-            StopMusicStream(pirent);
-            pauseMenu->toMainMenu = false;
-            return GAME_PREPARE2;
+            if (CheckCollisionPointRec(mousePos, buttonOnePlayer) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                EndDrawing();
+                StopMusicStream(pirent);
+                pauseMenu->toMainMenu = false;
+                return GAME_PREPARE1;
+            }
+            else if (CheckCollisionPointRec(mousePos, buttonTwoPlayers) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                EndDrawing();
+                StopMusicStream(pirent);
+                pauseMenu->toMainMenu = false;
+                return GAME_PREPARE2;
+            }
+            else if (CheckCollisionPointRec(mousePos, buttonSoundSettings) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                ReloadSoundMenu(pauseMenu);
+                gameState = GAME_PAUSED;
+            }
+
+        } else{
+            UpdatePauseMenu(pauseMenu);
+            if (!pauseMenu->isActive) {
+                gameState = GAME_START;
+            }
         }
-
 
         EndDrawing();
     }
@@ -2189,7 +2244,11 @@ void NewGame(PauseMenu *pauseMenu){
         behaviour, więc nie chcąc wywracać kodu do góry nogami inicjalizuję je jako NULL.
     */
 
+    pauseMenu->isGeneral = false;
+    pauseMenu->isMainMenu = true;
     gameState = PreGame(pauseMenu);
+    pauseMenu->isMainMenu = false;
+    pauseMenu->isGeneral = true;
 
     if(gameState == GAME_PREPARE1)
     {
