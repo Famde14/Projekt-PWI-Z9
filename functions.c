@@ -386,6 +386,7 @@ GameData* GameSet( GameState gameState, PauseMenu* pauseMenu)
                 } else{
                     UnloadSoundMenu(pauseMenu);
                     ReloadGeneralMenu(pauseMenu);
+                    pauseMenu->isGeneral = true;
                 }
             }
         }
@@ -1361,6 +1362,7 @@ void PlayGame(board *playerBoard, board *enemyBoard, ship *playerShip, ship *ene
                 } else{
                     UnloadSoundMenu(pauseMenu);
                     ReloadGeneralMenu(pauseMenu);
+                    pauseMenu->isGeneral = true;
                 }
             }
         }
@@ -1604,6 +1606,7 @@ void PlayGame_PvP(board *player1Board, board *player2Board, ship *player1Ship, s
                 } else{
                     UnloadSoundMenu(pauseMenu);
                     ReloadGeneralMenu(pauseMenu);
+                    pauseMenu->isGeneral = true;
                 }
             }
         }
